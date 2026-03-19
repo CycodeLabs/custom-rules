@@ -1,0 +1,31 @@
+rules:
+  - id: delphi-overflow-checking-disabled
+    message: >-
+      Overflow checking is explicitly disabled with {$Q-}. Without
+      overflow checking, integer arithmetic silently wraps around, which
+      can lead to undersized buffer allocations and bypassed security
+      checks. Enable overflow checking ({$Q+}).
+    severity: WARNING
+    languages: [generic]
+    paths:
+      include:
+        - "*.pas"
+        - "*.dpr"
+        - "*.inc"
+    pattern-either:
+      - pattern-regex: "\\{\\$Q-\\}"
+      - pattern-regex: "(?i)\\{\\$OVERFLOWCHECKS\\s+OFF\\}"
+    metadata:
+      cwe:
+        - "CWE-190: Integer Overflow or Wraparound"
+      confidence: HIGH
+      impact: HIGH
+      vulnerability_class: Integer Overflow
+      references:
+        - https://cwe.mitre.org/data/definitions/190.html
+      help: |
+        ## Summary
+        Overflow checking is explicitly disabled with {$Q-}, allowing integer arithmetic to silently wrap around, potentially causing undersized allocations or bypassed security checks.
+
+        ## Remediation
+        Enable overflow checking with {$Q+}, especially in security-critical code. If performance requires disabling it, limit the scope to specific well-audited arithmetic blocks.

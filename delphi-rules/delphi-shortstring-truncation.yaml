@@ -1,0 +1,30 @@
+rules:
+  - id: delphi-shortstring-truncation
+    message: >-
+      A ShortString (string[N]) type is used for what appears to be
+      security-sensitive data. ShortStrings silently truncate input beyond
+      their capacity, which can cause authentication bypasses or data
+      corruption. Use dynamic strings (string type) instead.
+    severity: WARNING
+    languages: [generic]
+    paths:
+      include:
+        - "*.pas"
+        - "*.dpr"
+        - "*.inc"
+    pattern-regex: "(?i)(?:Username|Password|Token|Key|Secret|Hash|Name|Email|Role|Auth|Session|Credential|Login|Salt)\\s*:\\s*string\\s*\\[\\s*\\d+\\s*\\]"
+    metadata:
+      cwe:
+        - "CWE-120: Buffer Copy without Checking Size of Input"
+        - "CWE-135: Incorrect Calculation of Multi-Byte String Length"
+      confidence: MEDIUM
+      impact: MEDIUM
+      vulnerability_class: Buffer Truncation
+      references:
+        - https://cwe.mitre.org/data/definitions/120.html
+      help: |
+        ## Summary
+        A ShortString (string[N]) type is used for security-sensitive data, silently truncating input beyond capacity, which can cause authentication bypasses or data corruption.
+
+        ## Remediation
+        Use dynamic strings (the default `string` type, which is an alias for UnicodeString) instead of ShortStrings for all security-sensitive fields.

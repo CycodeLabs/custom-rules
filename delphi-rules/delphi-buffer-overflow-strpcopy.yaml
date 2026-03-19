@@ -1,0 +1,33 @@
+rules:
+  - id: delphi-buffer-overflow-strpcopy
+    message: >-
+      StrPCopy copies a string into a fixed-size PChar/AnsiChar buffer
+      without bounds checking. If the source string exceeds the buffer
+      size, a stack buffer overflow occurs. Use StrLCopy with an explicit
+      length limit instead.
+    severity: ERROR
+    languages: [generic]
+    paths:
+      include:
+        - "*.pas"
+        - "*.dpr"
+        - "*.inc"
+    pattern-either:
+      - pattern: StrPCopy(...)
+      - pattern: StrCopy(...)
+      - pattern-regex: "(?i)\\bStrPCopy\\s*\\("
+      - pattern-regex: "(?i)\\bStrCopy\\s*\\("
+    metadata:
+      cwe:
+        - "CWE-120: Buffer Copy without Checking Size of Input"
+      confidence: HIGH
+      impact: HIGH
+      vulnerability_class: Buffer Overflow
+      references:
+        - https://cwe.mitre.org/data/definitions/120.html
+      help: |
+        ## Summary
+        Detects use of StrPCopy/StrCopy which copy strings into fixed-size buffers without bounds checking, risking stack buffer overflows.
+
+        ## Remediation
+        Replace StrPCopy with StrLCopy and provide an explicit maximum length parameter. For example: `StrLCopy(Dest, Source, SizeOf(Dest) - 1)`.

@@ -1,0 +1,34 @@
+rules:
+  - id: delphi-sqlite-no-encryption
+    message: >-
+      A SQLite database is opened without encryption. The database file
+      can be read by anyone with file system access. Enable SQLite
+      encryption using the Encrypt and Password parameters
+      (e.g., Encrypt=aes-256).
+    severity: WARNING
+    languages: [generic]
+    paths:
+      include:
+        - "*.pas"
+        - "*.dpr"
+        - "*.inc"
+    patterns:
+      - pattern-either:
+          - pattern-regex: "(?i)DriverID.*'SQLite'"
+          - pattern: "'DriverID', 'SQLite'"
+          - pattern: "'DriverID'] := 'SQLite'"
+      - pattern-not-regex: "(?i)Encrypt.*aes"
+    metadata:
+      cwe:
+        - "CWE-311: Missing Encryption of Sensitive Data"
+      confidence: MEDIUM
+      impact: MEDIUM
+      vulnerability_class: Missing Encryption
+      references:
+        - https://cwe.mitre.org/data/definitions/311.html
+      help: |
+        ## Summary
+        A SQLite database is opened without encryption, allowing anyone with file system access to read the database file.
+
+        ## Remediation
+        Enable SQLite encryption by setting the Encrypt parameter (e.g., `Params.Values['Encrypt'] := 'aes-256'`) and setting a strong password before opening the connection.

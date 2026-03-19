@@ -1,0 +1,39 @@
+rules:
+  - id: delphi-sql-injection-string-concat
+    message: >-
+      SQL query constructed using string concatenation. User-supplied data
+      may be embedded directly into the SQL command, enabling SQL injection.
+      Use parameterized queries (TFDQuery.Params / ':paramname' syntax) instead.
+    severity: ERROR
+    languages: [generic]
+    paths:
+      include:
+        - "*.pas"
+        - "*.dpr"
+        - "*.inc"
+    pattern-either:
+      - pattern: SQL.Text := '...' + $X
+      - pattern: SQL.Text := $X + '...'
+      - pattern: SQL.Add('...' + $X)
+      - pattern: SQL.Add($X + '...')
+      - pattern: ExecSQL('...' + $X)
+      - pattern: ExecSQL($X + '...')
+      - pattern: CommandText := '...' + $X
+      - pattern-regex: "(?i)ExecSQL\\s*\\([^)]*\\+[^)]*\\)"
+      - pattern-regex: "(?i)SQL\\.Text\\s*:=\\s*'[^']*'\\s*\\+"
+      - pattern-regex: "(?i)SQL\\.Add\\s*\\([^)]*'[^']*'\\s*\\+\\s*\\w"
+    metadata:
+      cwe:
+        - "CWE-89: Improper Neutralization of Special Elements used in an SQL Command"
+      confidence: HIGH
+      impact: CRITICAL
+      vulnerability_class: SQL Injection
+      references:
+        - https://cwe.mitre.org/data/definitions/89.html
+        - https://owasp.org/www-community/attacks/SQL_Injection
+      help: |
+        ## Summary
+        SQL queries are constructed using string concatenation, enabling SQL injection if user-supplied data is embedded directly.
+
+        ## Remediation
+        Use parameterized queries with TFDQuery.Params and ':paramname' syntax. For example: `Query.SQL.Text := 'SELECT * FROM users WHERE name = :name'; Query.ParamByName('name').AsString := UserInput;`.

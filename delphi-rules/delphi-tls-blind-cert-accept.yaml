@@ -1,0 +1,37 @@
+rules:
+  - id: delphi-tls-blind-cert-accept
+    message: >-
+      A TLS certificate validation callback unconditionally accepts all
+      certificates (Accepted := True or Result := True). This disables
+      server identity verification and allows MITM attacks. Validate the
+      certificate chain, expiry, and hostname properly.
+    severity: ERROR
+    languages: [generic]
+    paths:
+      include:
+        - "*.pas"
+        - "*.dpr"
+        - "*.inc"
+    pattern-either:
+      - pattern: |
+          OnValidateServerCertificate
+          ...
+          Accepted := True
+      - pattern: |
+          OnVerifyPeer
+          ...
+          Result := True
+    metadata:
+      cwe:
+        - "CWE-295: Improper Certificate Validation"
+      confidence: HIGH
+      impact: HIGH
+      vulnerability_class: Insecure TLS Configuration
+      references:
+        - https://cwe.mitre.org/data/definitions/295.html
+      help: |
+        ## Summary
+        A TLS certificate validation callback unconditionally accepts all certificates, disabling server identity verification and enabling man-in-the-middle attacks.
+
+        ## Remediation
+        Implement proper certificate validation logic in the callback. Check the certificate chain, expiry date, and hostname match before setting Accepted := True.

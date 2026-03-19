@@ -1,0 +1,31 @@
+rules:
+  - id: delphi-information-disclosure-path
+    message: >-
+      Server internal path information (PathTranslated) is included in
+      the HTTP response. This reveals the server's file system structure
+      to attackers. Remove or redact internal path information from
+      responses.
+    severity: WARNING
+    languages: [generic]
+    paths:
+      include:
+        - "*.pas"
+        - "*.dpr"
+        - "*.inc"
+    pattern-either:
+      - pattern: Response.Content ... PathTranslated ...
+      - pattern: ContentText ... PathTranslated ...
+    metadata:
+      cwe:
+        - "CWE-200: Exposure of Sensitive Information to an Unauthorized Actor"
+      confidence: HIGH
+      impact: MEDIUM
+      vulnerability_class: Information Disclosure
+      references:
+        - https://cwe.mitre.org/data/definitions/200.html
+      help: |
+        ## Summary
+        Server internal path information (PathTranslated) is included in HTTP responses, revealing file system structure to attackers.
+
+        ## Remediation
+        Remove or redact PathTranslated and other internal path information from all HTTP responses. Return generic error messages instead of system paths.

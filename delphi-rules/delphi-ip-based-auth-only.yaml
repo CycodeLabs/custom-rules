@@ -1,0 +1,33 @@
+rules:
+  - id: delphi-ip-based-auth-only
+    message: >-
+      Access control relies solely on checking Request.RemoteAddr against
+      localhost addresses. IP-based restrictions can be bypassed through
+      proxy headers, DNS rebinding, or network misconfiguration. Use
+      proper authentication mechanisms in addition to IP checks.
+    severity: WARNING
+    languages: [generic]
+    paths:
+      include:
+        - "*.pas"
+        - "*.dpr"
+        - "*.inc"
+    pattern-either:
+      - pattern: Request.RemoteAddr = '127.0.0.1'
+      - pattern: Request.RemoteAddr = '::1'
+      - pattern: "RemoteAddr = '0:0:0:0:0:0:0:1'"
+      - pattern-regex: "(?i)RemoteAddr\\s*=\\s*'127\\.0\\.0\\.1'"
+    metadata:
+      cwe:
+        - "CWE-290: Authentication Bypass by Spoofing"
+      confidence: HIGH
+      impact: MEDIUM
+      vulnerability_class: Weak Access Control
+      references:
+        - https://cwe.mitre.org/data/definitions/290.html
+      help: |
+        ## Summary
+        Access control relies solely on Request.RemoteAddr localhost checks, which can be bypassed via proxy headers, DNS rebinding, or network misconfiguration.
+
+        ## Remediation
+        Use proper authentication mechanisms (session tokens, API keys, OAuth) in addition to IP-based restrictions. Never rely on IP checks as the sole access control.

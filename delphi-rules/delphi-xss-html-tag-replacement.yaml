@@ -1,0 +1,35 @@
+rules:
+  - id: delphi-xss-html-tag-replacement
+    message: >-
+      Request-derived values are injected into HTML via tag replacement
+      (ReplaceText) without encoding. This enables reflected XSS if an
+      attacker can influence request properties like Host, ScriptName, or
+      query parameters. HTML-encode all dynamic values before inserting
+      them into HTML output.
+    severity: WARNING
+    languages: [generic]
+    paths:
+      include:
+        - "*.pas"
+        - "*.dpr"
+        - "*.inc"
+    pattern-either:
+      # Any request property used in HTML tag replacement
+      - pattern: ReplaceText := ... Request. ...
+      - pattern: ReplaceText := ... + ... Request. ...
+      # Regex: ReplaceText assignment involving Request data
+      - pattern-regex: "(?i)ReplaceText\\s*:=.*Request\\."
+    metadata:
+      cwe:
+        - "CWE-79: Improper Neutralization of Input During Web Page Generation"
+      confidence: MEDIUM
+      impact: MEDIUM
+      vulnerability_class: Cross-Site Scripting (XSS)
+      references:
+        - https://cwe.mitre.org/data/definitions/79.html
+      help: |
+        ## Summary
+        Request-derived values are injected into HTML via tag replacement (ReplaceText) without encoding, enabling reflected cross-site scripting (XSS).
+
+        ## Remediation
+        HTML-encode all dynamic values before inserting them into HTML output. Use TNetEncoding.HTML.Encode() or equivalent escaping for all request-derived data.

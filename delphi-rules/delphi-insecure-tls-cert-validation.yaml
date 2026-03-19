@@ -1,0 +1,34 @@
+rules:
+  - id: delphi-insecure-tls-cert-validation
+    message: >-
+      TLS/SSL certificate validation is disabled. Setting VerifyMode to
+      empty, VerifyDepth to 0, or using SSLv23 removes TLS security
+      guarantees and enables man-in-the-middle attacks. Implement proper
+      certificate validation and use TLS 1.2+.
+    severity: ERROR
+    languages: [generic]
+    paths:
+      include:
+        - "*.pas"
+        - "*.dpr"
+        - "*.inc"
+    pattern-either:
+      - pattern: VerifyMode := []
+      - pattern: VerifyDepth := 0
+      - pattern: sslvSSLv23
+      - pattern-regex: "(?i)VerifyMode\\s*:=\\s*\\[\\s*\\]"
+      - pattern-regex: "(?i)VerifyDepth\\s*:=\\s*0\\s*;"
+    metadata:
+      cwe:
+        - "CWE-295: Improper Certificate Validation"
+      confidence: HIGH
+      impact: HIGH
+      vulnerability_class: Insecure TLS Configuration
+      references:
+        - https://cwe.mitre.org/data/definitions/295.html
+      help: |
+        ## Summary
+        TLS/SSL certificate validation is disabled by setting VerifyMode to empty, VerifyDepth to 0, or using SSLv23, enabling man-in-the-middle attacks.
+
+        ## Remediation
+        Set VerifyMode to [sslvrfPeer], set VerifyDepth to a reasonable value (e.g., 4), and use TLS 1.2+ (sslvTLSv1_2) instead of SSLv23.

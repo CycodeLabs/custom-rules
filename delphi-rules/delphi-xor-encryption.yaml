@@ -1,0 +1,32 @@
+rules:
+  - id: delphi-xor-encryption
+    message: >-
+      XOR is used as an encryption mechanism in a loop, which constitutes
+      a trivially breakable cipher. XOR with a repeating key is vulnerable
+      to known-plaintext and frequency analysis attacks. Use AES-256-GCM
+      or another authenticated encryption algorithm from a vetted library.
+    severity: ERROR
+    languages: [generic]
+    paths:
+      include:
+        - "*.pas"
+        - "*.dpr"
+        - "*.inc"
+    pattern-either:
+      - pattern: ... xor ... mod Length(...)
+      - pattern: ... xor ... mod length(...)
+      - pattern-regex: "(?i)\\bxor\\b.*\\bmod\\b.*\\bLength\\b"
+    metadata:
+      cwe:
+        - "CWE-327: Use of a Broken or Risky Cryptographic Algorithm"
+      confidence: HIGH
+      impact: HIGH
+      vulnerability_class: Weak Encryption
+      references:
+        - https://cwe.mitre.org/data/definitions/327.html
+      help: |
+        ## Summary
+        XOR with a repeating key is used as encryption, which is trivially breakable via known-plaintext and frequency analysis attacks.
+
+        ## Remediation
+        Use AES-256-GCM or another authenticated encryption algorithm from a vetted library (e.g., OpenSSL via Indy, or DCPcrypt). Never implement custom ciphers.

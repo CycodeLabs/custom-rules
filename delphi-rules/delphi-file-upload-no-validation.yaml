@@ -1,0 +1,34 @@
+rules:
+  - id: delphi-file-upload-no-validation
+    message: >-
+      Uploaded files are processed using the client-supplied filename or
+      extension without validating file type, content, or size. An attacker
+      can upload malicious files. Validate content type via magic bytes,
+      enforce an allowlist of extensions, and limit file sizes.
+    severity: ERROR
+    languages: [generic]
+    paths:
+      include:
+        - "*.pas"
+        - "*.dpr"
+        - "*.inc"
+    pattern-either:
+      - pattern: TPath.GetExtension(request.Files...)
+      - pattern: request.Files[$IDX].FileName
+      - pattern: request.Files[$IDX].Stream
+      - pattern: Request.Files[$IDX].FileName
+      - pattern: Request.Files[$IDX].Stream
+    metadata:
+      cwe:
+        - "CWE-434: Unrestricted Upload of File with Dangerous Type"
+      confidence: MEDIUM
+      impact: HIGH
+      vulnerability_class: Insecure File Upload
+      references:
+        - https://cwe.mitre.org/data/definitions/434.html
+      help: |
+        ## Summary
+        Uploaded files are processed using the client-supplied filename or extension without validating file type, content, or size, enabling malicious file uploads.
+
+        ## Remediation
+        Validate content type via magic bytes, enforce an allowlist of permitted extensions, limit file sizes, and store uploaded files outside the web root with random names.

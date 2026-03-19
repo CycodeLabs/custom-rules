@@ -1,0 +1,34 @@
+rules:
+  - id: delphi-format-string-user-input
+    message: >-
+      The first argument to Format() appears to be a variable rather than
+      a string literal. If this variable contains user-controlled data with
+      format specifiers (%s, %d, %x), it can cause access violations,
+      information leakage, or crashes. Always use string literals as format
+      strings and pass user data as arguments.
+    severity: WARNING
+    languages: [generic]
+    paths:
+      include:
+        - "*.pas"
+        - "*.dpr"
+        - "*.inc"
+    patterns:
+      - pattern-either:
+          - pattern-regex: "(?i)\\bFormat\\s*\\(\\s*[A-Za-z_]\\w*\\s*,"
+          - pattern: "Format($VAR, ...)"
+      - pattern-not-regex: "(?i)\\bFormat\\s*\\(\\s*'[^']*'\\s*,"
+    metadata:
+      cwe:
+        - "CWE-134: Use of Externally-Controlled Format String"
+      confidence: MEDIUM
+      impact: HIGH
+      vulnerability_class: Format String
+      references:
+        - https://cwe.mitre.org/data/definitions/134.html
+      help: |
+        ## Summary
+        The first argument to Format() is a variable rather than a literal, risking format string injection if it contains user-controlled data.
+
+        ## Remediation
+        Always use string literals as format strings. Pass user data only via the arguments array: `Format('User: %s', [UserInput])`.

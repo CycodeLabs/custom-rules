@@ -1,0 +1,40 @@
+rules:
+  - id: delphi-xss-response-content
+    message: >-
+      HTTP request data is embedded into Response.Content without HTML
+      encoding. An attacker can inject malicious scripts via request
+      parameters, headers, or path components. Use HTMLEncode() or
+      equivalent escaping before including any request-derived data
+      in HTML output.
+    severity: ERROR
+    languages: [generic]
+    paths:
+      include:
+        - "*.pas"
+        - "*.dpr"
+        - "*.inc"
+    pattern-either:
+      # Any Request property reflected directly in response content
+      - pattern: Response.Content := ... Request. ...
+      # Request data assigned to variable then used in response
+      - pattern: |
+          $VAR := Request. ...
+          ...
+          Response.Content := ... $VAR ...
+      # Regex: single-line reflection of Request data in Response
+      - pattern-regex: "(?i)Response\\.Content\\s*:=.*Request\\."
+    metadata:
+      cwe:
+        - "CWE-79: Improper Neutralization of Input During Web Page Generation"
+      confidence: HIGH
+      impact: HIGH
+      vulnerability_class: Cross-Site Scripting (XSS)
+      references:
+        - https://cwe.mitre.org/data/definitions/79.html
+        - https://owasp.org/www-community/attacks/xss/
+      help: |
+        ## Summary
+        HTTP request data is embedded into Response.Content without HTML encoding, enabling attackers to inject malicious scripts via request parameters or headers.
+
+        ## Remediation
+        Use HTMLEncode() or TNetEncoding.HTML.Encode() on all request-derived data before including it in HTML output. Set Content-Type to 'text/html; charset=utf-8' and add X-Content-Type-Options: nosniff.

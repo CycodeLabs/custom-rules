@@ -1,0 +1,31 @@
+rules:
+  - id: delphi-cors-wildcard-origin
+    message: >-
+      Access-Control-Allow-Origin is set to '*', allowing any website to
+      make cross-origin requests and read the response. This can lead to
+      data theft if the endpoint returns sensitive information. Restrict
+      CORS to specific trusted origins.
+    severity: WARNING
+    languages: [generic]
+    paths:
+      include:
+        - "*.pas"
+        - "*.dpr"
+        - "*.inc"
+    pattern-either:
+      - pattern: "'Access-Control-Allow-Origin', '*'"
+      - pattern-regex: "(?i)Access-Control-Allow-Origin.*'\\*'"
+    metadata:
+      cwe:
+        - "CWE-942: Overly Permissive Cross-domain Whitelist"
+      confidence: HIGH
+      impact: MEDIUM
+      vulnerability_class: CORS Misconfiguration
+      references:
+        - https://cwe.mitre.org/data/definitions/942.html
+      help: |
+        ## Summary
+        Access-Control-Allow-Origin is set to '*', allowing any website to make cross-origin requests and read responses.
+
+        ## Remediation
+        Replace the wildcard with specific trusted origins. For example: `Response.CustomHeaders.Values['Access-Control-Allow-Origin'] := 'https://trusted-domain.com'`.

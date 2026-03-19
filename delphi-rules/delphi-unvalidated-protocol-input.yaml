@@ -1,0 +1,44 @@
+rules:
+  - id: delphi-unvalidated-protocol-input
+    message: >-
+      User input from a UI control (Edit, ComboBox) is passed directly
+      to a network protocol function without input validation. Malformed
+      or malicious input can cause protocol injection, denial of service,
+      or unexpected server-side behavior. Validate that the input conforms
+      to the expected format (e.g., valid domain name, IP address, or URL)
+      before passing it to network functions.
+    severity: WARNING
+    languages: [generic]
+    paths:
+      include:
+        - "*.pas"
+        - "*.dpr"
+        - "*.inc"
+    pattern-either:
+      # Protocol functions called with raw UI input
+      - pattern: $X.WhoIs($EDIT.Text...)
+      - pattern: $X.Finger($EDIT.Text...)
+      - pattern: $X.SendCmd($EDIT.Text...)
+      - pattern: $X.Lookup($EDIT.Text...)
+      # Network properties set from UI controls without validation
+      - pattern: $X.Host := $EDIT.Text
+      - pattern: $X.Server := $EDIT.Text
+      - pattern: $X.Port := ...StrToInt($EDIT.Text)...
+      # Regex: protocol functions and network properties from .Text
+      - pattern-regex: "(?i)\\.(?:WhoIs|Finger|SendCmd|Lookup|Resolve|Query|Fetch|DNS)\\s*\\(\\s*\\w+\\.Text"
+      - pattern-regex: "(?i)\\.(?:Host|Server|Address|Port|Hostname)\\s*:=\\s*\\w+\\.Text"
+    metadata:
+      cwe:
+        - "CWE-20: Improper Input Validation"
+      confidence: MEDIUM
+      impact: MEDIUM
+      vulnerability_class: Input Validation
+      references:
+        - https://cwe.mitre.org/data/definitions/20.html
+        - https://owasp.org/www-community/vulnerabilities/Improper_Data_Validation
+      help: |
+        ## Summary
+        User input from a UI control is passed directly to a network protocol function without validation, risking protocol injection or denial of service.
+
+        ## Remediation
+        Validate that input conforms to the expected format (e.g., valid hostname, IP address, or port range) before passing to network functions. Use TRegEx or manual checks.

@@ -1,0 +1,40 @@
+rules:
+  - id: delphi-double-free
+    message: >-
+      The same object is freed twice via .Free calls. Double-free corrupts
+      the heap memory manager metadata, which can lead to crashes,
+      unpredictable behavior, or exploitation by an attacker who controls
+      heap allocations. Use FreeAndNil() to set the pointer to nil after
+      the first free, preventing a second free on the same address.
+    severity: ERROR
+    languages: [generic]
+    paths:
+      include:
+        - "*.pas"
+        - "*.dpr"
+        - "*.inc"
+    patterns:
+      - pattern: |
+          $OBJ.Free;
+          ...
+          $OBJ.Free;
+      - pattern-not: |
+          $OBJ.Free;
+          ...
+          $OBJ := ...
+          ...
+          $OBJ.Free;
+    metadata:
+      cwe:
+        - "CWE-415: Double Free"
+      confidence: MEDIUM
+      impact: HIGH
+      vulnerability_class: Memory Safety
+      references:
+        - https://cwe.mitre.org/data/definitions/415.html
+      help: |
+        ## Summary
+        The same object is freed twice via .Free calls, corrupting heap memory and potentially enabling exploitation.
+
+        ## Remediation
+        Use FreeAndNil() instead of .Free to set the pointer to nil after freeing. Always check `Assigned(Obj)` before freeing in cleanup paths.

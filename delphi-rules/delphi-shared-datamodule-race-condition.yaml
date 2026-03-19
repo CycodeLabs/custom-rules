@@ -1,0 +1,32 @@
+rules:
+  - id: delphi-shared-datamodule-race-condition
+    message: >-
+      A shared DataModule dataset/table is accessed directly from a
+      WebModule or form handler without synchronization. In multi-threaded
+      servers, concurrent requests cause race conditions. Use per-thread
+      connections via FireDAC connection pooling.
+    severity: WARNING
+    languages: [generic]
+    paths:
+      include:
+        - "*.pas"
+        - "*.dpr"
+        - "*.inc"
+    pattern-either:
+      - pattern-regex: "(?i)DataModule\\d*\\.\\w+(?:Table|Query|DataSet|Connection|Command|StoredProc)\\b"
+      - pattern-regex: "(?i)DataModule\\d*\\.(?:FD|ClientData|SQL|ADS|IB|ADO|Uni)\\w+"
+      - pattern: DataModule1.$MEMBER
+    metadata:
+      cwe:
+        - "CWE-362: Concurrent Execution using Shared Resource with Improper Synchronization"
+      confidence: MEDIUM
+      impact: MEDIUM
+      vulnerability_class: Race Condition
+      references:
+        - https://cwe.mitre.org/data/definitions/362.html
+      help: |
+        ## Summary
+        A shared DataModule dataset is accessed directly from a WebModule handler without synchronization, causing race conditions in multi-threaded servers.
+
+        ## Remediation
+        Use per-thread database connections via FireDAC connection pooling (TFDManager). Avoid sharing DataModule instances across concurrent request handlers.

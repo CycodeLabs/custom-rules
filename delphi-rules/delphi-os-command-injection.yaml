@@ -1,0 +1,50 @@
+rules:
+  - id: delphi-os-command-injection
+    message: >-
+      Potential OS command injection. A command string is constructed using
+      concatenation and passed to ShellExecute, CreateProcess, or WinExec.
+      An attacker may inject additional commands via shell metacharacters.
+      Validate input strictly or avoid shell command construction from user data.
+    severity: ERROR
+    languages: [generic]
+    paths:
+      include:
+        - "*.pas"
+        - "*.dpr"
+        - "*.inc"
+    pattern-either:
+      # Direct concatenation inside the call
+      - pattern: ShellExecute(..., ..., PChar(... + $X), ..., ..., ...)
+      - pattern: CreateProcess(..., PChar(... + $X), ...)
+      - pattern: WinExec(... + ..., ...)
+      # Multi-line: variable built with concatenation then passed to shell
+      - pattern: |
+          $CMD := ... + ...
+          ...
+          ShellExecute(..., PChar($CMD), ...)
+      - pattern: |
+          $CMD := ... + ...
+          ...
+          CreateProcess(..., PChar($CMD), ...)
+      - pattern: |
+          $CMD := ... + ...
+          ...
+          WinExec(PChar($CMD), ...)
+      # Regex fallbacks for inline concatenation
+      - pattern-regex: "(?i)ShellExecute\\s*\\([^)]*PChar\\s*\\([^)]*\\+"
+      - pattern-regex: "(?i)CreateProcess\\s*\\([^)]*PChar\\s*\\([^)]*\\+"
+      - pattern-regex: "(?i)WinExec\\s*\\([^)]*\\+[^)]*\\)"
+    metadata:
+      cwe:
+        - "CWE-78: Improper Neutralization of Special Elements used in an OS Command"
+      confidence: HIGH
+      impact: CRITICAL
+      vulnerability_class: OS Command Injection
+      references:
+        - https://cwe.mitre.org/data/definitions/78.html
+      help: |
+        ## Summary
+        A command string is built using concatenation and passed to ShellExecute, CreateProcess, or WinExec, enabling OS command injection.
+
+        ## Remediation
+        Avoid constructing commands from user data. Use parameterized APIs where possible. If shell execution is needed, strictly validate and whitelist all input characters.

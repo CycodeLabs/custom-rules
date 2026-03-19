@@ -1,0 +1,36 @@
+rules:
+  - id: delphi-cleartext-http-url-in-code
+    message: >-
+      An http:// URL is used in a network operation such as a download,
+      API call, or file transfer. Data sent over unencrypted HTTP can
+      be intercepted and modified by a man-in-the-middle attacker. Use
+      HTTPS for all network communications.
+    severity: WARNING
+    languages: [generic]
+    paths:
+      include:
+        - "*.pas"
+        - "*.dpr"
+        - "*.inc"
+    pattern-either:
+      # http:// URL in network function calls
+      - pattern-regex: "(?i)(?:\\.Get|\\.Post|\\.Put|\\.Delete|\\.Head|\\.Download|\\.Execute|SendFile\\w*)\\s*\\([^)]*'http://"
+      # http:// URL assigned to a URL/endpoint variable
+      - pattern-regex: "(?i)(?:URL|Uri|Endpoint|Address|BaseURL|ServerURL|APIUrl)\\s*:=\\s*'http://"
+      # http:// URL passed as parameter to download/send functions
+      - pattern: download('http://...', ...)
+      - pattern: SendFileToServer(..., 'http://...', ...)
+    metadata:
+      cwe:
+        - "CWE-319: Cleartext Transmission of Sensitive Information"
+      confidence: MEDIUM
+      impact: MEDIUM
+      vulnerability_class: Cleartext Transmission
+      references:
+        - https://cwe.mitre.org/data/definitions/319.html
+      help: |
+        ## Summary
+        An http:// URL is used in network operations, allowing data interception via man-in-the-middle attacks.
+
+        ## Remediation
+        Replace all http:// URLs with https:// equivalents. Ensure TLS is enforced for all API calls, downloads, and file transfers.

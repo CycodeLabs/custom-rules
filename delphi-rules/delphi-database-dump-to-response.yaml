@@ -1,0 +1,35 @@
+rules:
+  - id: delphi-database-dump-to-response
+    message: >-
+      Database contents are streamed directly to an HTTP response via
+      SaveToStream(Response.ContentStream). Ensure authentication and
+      authorization are enforced on this endpoint. Without proper access
+      controls, any client that can reach this endpoint can retrieve the
+      entire dataset. Verify that middleware or BeforeDispatch handlers
+      enforce authentication before this code executes.
+    severity: WARNING
+    languages: [generic]
+    paths:
+      include:
+        - "*.pas"
+        - "*.dpr"
+        - "*.inc"
+    pattern-either:
+      - pattern: $TABLE.SaveToStream(Response.ContentStream, ...)
+      - pattern: SaveToStream(Response.ContentStream, ...)
+      - pattern-regex: "(?i)SaveToStream\\s*\\(\\s*Response\\.ContentStream"
+    metadata:
+      cwe:
+        - "CWE-306: Missing Authentication for Critical Function"
+      confidence: MEDIUM
+      impact: HIGH
+      vulnerability_class: Missing Authentication
+      references:
+        - https://cwe.mitre.org/data/definitions/306.html
+        - https://owasp.org/API-Security/editions/2023/en/0xa2-broken-authentication/
+      help: |
+        ## Summary
+        Database contents are streamed directly to an HTTP response without visible access controls, risking unauthorized data exposure.
+
+        ## Remediation
+        Enforce authentication and authorization middleware before streaming database data. Verify that BeforeDispatch handlers or session checks gate access to this endpoint.

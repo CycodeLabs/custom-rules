@@ -1,0 +1,44 @@
+rules:
+  - id: delphi-ssrf-user-controlled-url
+    message: >-
+      An HTTP request is made to a URL that may be derived from user input.
+      An attacker can direct the server to request internal resources,
+      cloud metadata endpoints, or arbitrary hosts. Validate URLs against
+      an allowlist and block private/internal IP ranges before making
+      server-side requests.
+    severity: ERROR
+    languages: [generic]
+    paths:
+      include:
+        - "*.pas"
+        - "*.dpr"
+        - "*.inc"
+    pattern-either:
+      # URL sourced from request/form then used in HTTP call
+      - pattern: |
+          $URL := Request. ...
+          ...
+          $HTTP.Get($URL)
+      - pattern: |
+          $URL := Request. ...
+          ...
+          $HTTP.Post($URL, ...)
+      # Direct request data in HTTP call
+      - pattern: $HTTP.Get(Request. ...)
+      - pattern: $HTTP.Post(Request. ..., ...)
+      # Variables with URL/Uri/Endpoint in name passed to HTTP methods
+      - pattern-regex: "(?i)\\.(?:Get|Post|Put|Delete|Head)\\s*\\(\\s*\\w*(?:URL|Uri|Endpoint)\\b"
+    metadata:
+      cwe:
+        - "CWE-918: Server-Side Request Forgery (SSRF)"
+      confidence: MEDIUM
+      impact: CRITICAL
+      vulnerability_class: SSRF
+      references:
+        - https://cwe.mitre.org/data/definitions/918.html
+      help: |
+        ## Summary
+        An HTTP request is made to a URL derived from user input, enabling server-side request forgery (SSRF) to internal resources or cloud metadata endpoints.
+
+        ## Remediation
+        Validate URLs against an allowlist of trusted domains. Block private/internal IP ranges (10.x, 172.16-31.x, 192.168.x, 169.254.x) before making server-side requests.

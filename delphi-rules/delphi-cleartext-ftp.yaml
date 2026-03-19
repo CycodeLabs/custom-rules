@@ -1,0 +1,34 @@
+rules:
+  - id: delphi-cleartext-ftp
+    message: >-
+      An FTP connection is established without TLS/SSL encryption.
+      Credentials and file data are transmitted in cleartext. Use FTPS
+      by configuring the TIdFTP component with TIdSSLIOHandlerSocketOpenSSL
+      and setting UseTLS to utUseExplicitTLS or utUseImplicitTLS.
+    severity: ERROR
+    languages: [generic]
+    paths:
+      include:
+        - "*.pas"
+        - "*.dpr"
+        - "*.inc"
+    pattern-either:
+      # Indy FTP component Connect calls
+      - pattern: IdFTP1.Connect
+      - pattern-regex: "(?i)\\b(?:Id)?FTP\\w*\\.Connect"
+      # TIdFTP class instantiation (FTP is being used)
+      - pattern: TIdFTP.Create
+    metadata:
+      cwe:
+        - "CWE-319: Cleartext Transmission of Sensitive Information"
+      confidence: MEDIUM
+      impact: HIGH
+      vulnerability_class: Cleartext Transmission
+      references:
+        - https://cwe.mitre.org/data/definitions/319.html
+      help: |
+        ## Summary
+        An FTP connection is established without TLS/SSL encryption, transmitting credentials and data in cleartext.
+
+        ## Remediation
+        Configure TIdFTP with TIdSSLIOHandlerSocketOpenSSL and set UseTLS to utUseExplicitTLS or utUseImplicitTLS before calling Connect.

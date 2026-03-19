@@ -1,0 +1,38 @@
+rules:
+  - id: delphi-silent-exception-handler
+    message: >-
+      An except block catches and silently discards exceptions without
+      logging, re-raising, or handling them. This masks errors including
+      security-relevant failures. Log exceptions and handle them
+      appropriately, or re-raise them.
+    severity: WARNING
+    languages: [generic]
+    paths:
+      include:
+        - "*.pas"
+        - "*.dpr"
+        - "*.inc"
+    pattern-either:
+      - pattern: |
+          except
+          end;
+      - pattern: |
+          except
+          // ...
+          end;
+      - pattern-regex: "(?is)\\bexcept\\s*\\bend\\s*;"
+      - pattern-regex: "(?is)\\bexcept\\s*//[^\\n]*\\s*\\bend\\s*;"
+    metadata:
+      cwe:
+        - "CWE-390: Detection of Error Condition Without Action"
+      confidence: MEDIUM
+      impact: MEDIUM
+      vulnerability_class: Error Handling
+      references:
+        - https://cwe.mitre.org/data/definitions/390.html
+      help: |
+        ## Summary
+        An except block silently discards exceptions without logging, re-raising, or handling them, masking errors including security-relevant failures.
+
+        ## Remediation
+        Log exceptions with sufficient detail for debugging and auditing. Either handle the error appropriately or re-raise it. Never leave except blocks empty.

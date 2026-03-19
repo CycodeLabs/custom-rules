@@ -1,0 +1,32 @@
+rules:
+  - id: delphi-hardcoded-crypto-salt
+    message: >-
+      A GUID or fixed value is used as a cryptographic salt or security
+      password. Hardcoded salts reduce security since all deployments share
+      the same value. Generate unique random salts per instance or per
+      operation and store them securely.
+    severity: WARNING
+    languages: [generic]
+    paths:
+      include:
+        - "*.pas"
+        - "*.dpr"
+        - "*.inc"
+    pattern-either:
+      - pattern-regex: "(?i)(?:Salt|Password|Secret)\\w*\\s*=\\s*'\\{[0-9A-Fa-f-]{36}\\}'"
+      - pattern-regex: "(?i)(?:CPrivate|CApp)\\w*(?:Salt|Password|Secret)\\w*\\s*=\\s*'"
+    metadata:
+      cwe:
+        - "CWE-798: Use of Hard-coded Credentials"
+        - "CWE-760: Use of a One-Way Hash with a Predictable Salt"
+      confidence: HIGH
+      impact: MEDIUM
+      vulnerability_class: Hardcoded Cryptographic Material
+      references:
+        - https://cwe.mitre.org/data/definitions/798.html
+      help: |
+        ## Summary
+        A GUID or fixed value is used as a cryptographic salt or password, reducing security since all deployments share the same value.
+
+        ## Remediation
+        Generate unique random salts per operation using a CSPRNG (e.g., TNetEncoding or OS-level random). Store salts alongside the hashed data, never in source code.

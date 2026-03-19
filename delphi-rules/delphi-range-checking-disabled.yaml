@@ -1,0 +1,32 @@
+rules:
+  - id: delphi-range-checking-disabled
+    message: >-
+      Range checking is explicitly disabled with {$R-}. Without range
+      checking, out-of-bounds array access silently reads or writes
+      arbitrary memory. Enable range checking ({$R+}) especially for
+      security-critical code.
+    severity: WARNING
+    languages: [generic]
+    paths:
+      include:
+        - "*.pas"
+        - "*.dpr"
+        - "*.inc"
+    pattern-either:
+      - pattern-regex: "\\{\\$R-\\}"
+      - pattern-regex: "(?i)\\{\\$RANGECHECKS\\s+OFF\\}"
+    metadata:
+      cwe:
+        - "CWE-129: Improper Validation of Array Index"
+        - "CWE-787: Out-of-bounds Write"
+      confidence: HIGH
+      impact: HIGH
+      vulnerability_class: Missing Safety Checks
+      references:
+        - https://cwe.mitre.org/data/definitions/129.html
+      help: |
+        ## Summary
+        Range checking is explicitly disabled with {$R-}, allowing out-of-bounds array access to silently read or write arbitrary memory.
+
+        ## Remediation
+        Enable range checking with {$R+}, especially in security-critical code. If performance-critical sections need it disabled, limit the scope and audit array accesses carefully.

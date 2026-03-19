@@ -1,0 +1,34 @@
+rules:
+  - id: delphi-dll-hijacking-loadlibrary
+    message: >-
+      LoadLibrary is called with a filename that does not contain a full
+      path. Windows DLL search order will check the current working
+      directory before system directories, enabling DLL hijacking. Use
+      full absolute paths and call SetDefaultDllDirectories to restrict
+      the search order.
+    severity: WARNING
+    languages: [generic]
+    paths:
+      include:
+        - "*.pas"
+        - "*.dpr"
+        - "*.inc"
+    patterns:
+      - pattern-either:
+          - pattern-regex: "(?i)LoadLibrary\\s*\\(\\s*(?:PChar\\s*\\(\\s*)?'[^'\\\\/:]+\\.dll'"
+          - pattern: LoadLibrary('...')
+      - pattern-not-regex: "(?i)LoadLibrary\\s*\\(.*(?:\\\\\\\\|/|:[/\\\\]).*\\.dll"
+    metadata:
+      cwe:
+        - "CWE-427: Uncontrolled Search Path Element"
+      confidence: HIGH
+      impact: HIGH
+      vulnerability_class: DLL Hijacking
+      references:
+        - https://cwe.mitre.org/data/definitions/427.html
+      help: |
+        ## Summary
+        LoadLibrary is called with a relative DLL filename, allowing DLL hijacking through the current working directory.
+
+        ## Remediation
+        Pass a full absolute path to LoadLibrary. Call SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_SYSTEM32) at startup to restrict the search order.

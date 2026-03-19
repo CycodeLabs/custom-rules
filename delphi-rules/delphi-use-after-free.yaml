@@ -1,0 +1,41 @@
+rules:
+  - id: delphi-use-after-free
+    message: >-
+      An object is accessed after being freed via .Free. The variable still
+      holds the old address, but the memory has been deallocated. Subsequent
+      access reads or writes freed memory, leading to crashes, data
+      corruption, or code execution via vtable hijacking. Use FreeAndNil()
+      and check for nil before accessing objects.
+    severity: ERROR
+    languages: [generic]
+    paths:
+      include:
+        - "*.pas"
+        - "*.dpr"
+        - "*.inc"
+    patterns:
+      - pattern: |
+          $OBJ.Free;
+          ...
+          $OBJ.$CALL
+      - pattern-not: |
+          $OBJ.Free;
+          ...
+          $OBJ := ...
+          ...
+          $OBJ.$CALL
+    metadata:
+      cwe:
+        - "CWE-416: Use After Free"
+      confidence: MEDIUM
+      impact: HIGH
+      vulnerability_class: Memory Safety
+      references:
+        - https://cwe.mitre.org/data/definitions/416.html
+        - https://owasp.org/www-community/vulnerabilities/Using_freed_memory
+      help: |
+        ## Summary
+        An object is accessed after being freed via .Free, reading or writing deallocated memory which can lead to crashes or code execution via vtable hijacking.
+
+        ## Remediation
+        Use FreeAndNil() instead of .Free to set the pointer to nil after freeing. Always check `Assigned(Obj)` or `Obj <> nil` before accessing objects that may have been freed.

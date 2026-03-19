@@ -1,0 +1,33 @@
+rules:
+  - id: delphi-xxe-xml-parsing
+    message: >-
+      XML content is parsed using LoadFromXML or TXMLDocument without
+      disabling external entity processing. An attacker can craft XML with
+      external entity declarations to read local files, perform SSRF, or
+      cause denial of service. Disable DTD processing and external entities
+      before parsing untrusted XML.
+    severity: ERROR
+    languages: [generic]
+    paths:
+      include:
+        - "*.pas"
+        - "*.dpr"
+        - "*.inc"
+    pattern-either:
+      - pattern: $X.LoadFromXML($INPUT)
+      - pattern: LoadFromXML($INPUT)
+      - pattern-regex: "(?i)\\.LoadFromXML\\s*\\(\\s*[A-Za-z_]\\w*\\s*\\)"
+    metadata:
+      cwe:
+        - "CWE-611: Improper Restriction of XML External Entity Reference"
+      confidence: MEDIUM
+      impact: HIGH
+      vulnerability_class: XXE Injection
+      references:
+        - https://cwe.mitre.org/data/definitions/611.html
+      help: |
+        ## Summary
+        XML content is parsed using LoadFromXML or TXMLDocument without disabling external entity processing, enabling XXE attacks for file reading, SSRF, or denial of service.
+
+        ## Remediation
+        Disable DTD processing and external entities before parsing untrusted XML. With MSXML, set ProhibitDTD to True and AllowDocumentFunction to False. Consider using a SAX parser with entity resolution disabled.

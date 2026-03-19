@@ -1,0 +1,40 @@
+rules:
+  - id: delphi-path-traversal
+    message: >-
+      A filename from an external source (request data, user input, URL)
+      is used in file path construction without sanitization. An attacker
+      can use '../' sequences to access files outside the intended
+      directory. Validate that filenames contain no path separators or
+      '..' components before using them in file operations.
+    severity: ERROR
+    languages: [generic]
+    paths:
+      include:
+        - "*.pas"
+        - "*.dpr"
+        - "*.inc"
+    pattern-either:
+      # Path built from request/user input
+      - pattern: TPath.Combine(..., ...Request...)
+      - pattern: TPath.Combine(..., ...$EDIT.Text...)
+      - pattern: LoadFromFile(... Request. ...)
+      # File operations with extracted filenames from URLs
+      - pattern: TPath.Combine(..., ...ExtractFileName...)
+      # Download with concatenated path
+      - pattern: $X.download(... + ..., ...)
+      # Regex: TPath.Combine with external data sources
+      - pattern-regex: "(?i)TPath\\.Combine\\s*\\([^)]*(?:Request\\.|ExtractFileName|\\.Text\\b|\\.FileName\\b)"
+    metadata:
+      cwe:
+        - "CWE-22: Improper Limitation of a Pathname to a Restricted Directory"
+      confidence: MEDIUM
+      impact: HIGH
+      vulnerability_class: Path Traversal
+      references:
+        - https://cwe.mitre.org/data/definitions/22.html
+      help: |
+        ## Summary
+        A filename from an external source is used in file path construction without sanitization, enabling path traversal attacks with '../' sequences.
+
+        ## Remediation
+        Validate filenames contain no path separators or '..' components. Use TPath.GetFileName to strip directory components, and verify the resolved path stays within the intended base directory.

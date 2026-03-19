@@ -1,0 +1,32 @@
+rules:
+  - id: delphi-encryption-disabled-debug
+    message: >-
+      Database encryption or password is set to an empty string, likely
+      within a conditional DEBUG block. If debug builds are deployed to
+      staging or test environments with real data, sensitive information
+      is stored unencrypted. Use encryption in all build configurations
+      and never set Password or Encrypt to empty strings.
+    severity: WARNING
+    languages: [generic]
+    paths:
+      include:
+        - "*.pas"
+        - "*.dpr"
+        - "*.inc"
+    pattern-either:
+      - pattern-regex: "(?i)\\['Password'\\]\\s*:=\\s*''\\s*;"
+      - pattern-regex: "(?i)\\['Encrypt'\\]\\s*:=\\s*''\\s*;"
+    metadata:
+      cwe:
+        - "CWE-311: Missing Encryption of Sensitive Data"
+      confidence: HIGH
+      impact: MEDIUM
+      vulnerability_class: Conditional Encryption Bypass
+      references:
+        - https://cwe.mitre.org/data/definitions/311.html
+      help: |
+        ## Summary
+        Database encryption or password is set to an empty string, likely in a debug build, leaving data unencrypted if deployed to non-production environments.
+
+        ## Remediation
+        Use encryption in all build configurations. Never conditionally disable encryption based on DEBUG defines. Use separate test databases instead of disabling security.

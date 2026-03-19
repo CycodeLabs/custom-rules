@@ -1,0 +1,33 @@
+rules:
+  - id: delphi-dll-external-no-path
+    message: >-
+      An external function is declared from a DLL using only a filename
+      without a full path. The DLL will be loaded using the Windows search
+      order, which is vulnerable to DLL hijacking. Ensure the DLL is loaded
+      from a specific, controlled directory.
+    severity: WARNING
+    languages: [generic]
+    paths:
+      include:
+        - "*.pas"
+        - "*.dpr"
+        - "*.inc"
+    patterns:
+      - pattern-either:
+          - pattern-regex: "(?i)\\bexternal\\s+'[^'\\\\/:]+\\.dll'"
+          - pattern: "external '...dll'"
+      - pattern-not-regex: "(?i)\\bexternal\\s+'.*(?:\\\\\\\\|/|:).*\\.dll'"
+    metadata:
+      cwe:
+        - "CWE-427: Uncontrolled Search Path Element"
+      confidence: MEDIUM
+      impact: HIGH
+      vulnerability_class: DLL Hijacking
+      references:
+        - https://cwe.mitre.org/data/definitions/427.html
+      help: |
+        ## Summary
+        An external function is declared from a DLL using only a filename without a full path, making it vulnerable to DLL hijacking via the Windows search order.
+
+        ## Remediation
+        Use a full absolute path for the DLL, or call SetDefaultDllDirectories to restrict the DLL search order before loading.

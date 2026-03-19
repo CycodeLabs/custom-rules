@@ -1,0 +1,35 @@
+rules:
+  - id: delphi-json-response-missing-content-type
+    message: >-
+      Database data is serialized to JSON format (sfJSON/sfFreeFormJSON)
+      and sent in the HTTP response stream. Ensure the Content-Type
+      header is set to 'application/json' and add
+      'X-Content-Type-Options: nosniff'. Without a proper Content-Type,
+      browsers may MIME-sniff the response and interpret JSON as HTML,
+      potentially enabling XSS if the data contains user-controlled values.
+    severity: WARNING
+    languages: [generic]
+    paths:
+      include:
+        - "*.pas"
+        - "*.dpr"
+        - "*.inc"
+    pattern-either:
+      - pattern: SaveToStream(..., ...sfJSON)
+      - pattern: SaveToStream(..., ...sfFreeFormJSON)
+      - pattern-regex: "(?i)SaveToStream\\s*\\([^)]*sf(?:FreeForm)?JSON"
+    metadata:
+      cwe:
+        - "CWE-16: Configuration"
+      confidence: MEDIUM
+      impact: LOW
+      vulnerability_class: Missing Security Header
+      references:
+        - https://cwe.mitre.org/data/definitions/16.html
+        - https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/X-Content-Type-Options
+      help: |
+        ## Summary
+        Database data is serialized to JSON and sent in the HTTP response stream without ensuring Content-Type is set to application/json, risking MIME-sniffing XSS.
+
+        ## Remediation
+        Set `Response.ContentType := 'application/json'` and add `X-Content-Type-Options: nosniff` header before writing JSON data to the response stream.

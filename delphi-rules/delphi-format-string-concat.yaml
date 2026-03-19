@@ -1,0 +1,32 @@
+rules:
+  - id: delphi-format-string-concat
+    message: >-
+      A format string is constructed by concatenating a variable with a
+      string literal before passing to Format(). If the variable contains
+      format specifiers, this leads to format string vulnerabilities.
+      Keep format strings as pure literals and pass all dynamic values as arguments.
+    severity: WARNING
+    languages: [generic]
+    paths:
+      include:
+        - "*.pas"
+        - "*.dpr"
+        - "*.inc"
+    pattern-either:
+      - pattern: "Format('...' + $VAR, ...)"
+      - pattern: "Format($VAR + '...', ...)"
+      - pattern-regex: "(?i)\\bFormat\\s*\\(\\s*'[^']*'\\s*\\+\\s*\\w+\\s*,"
+    metadata:
+      cwe:
+        - "CWE-134: Use of Externally-Controlled Format String"
+      confidence: MEDIUM
+      impact: HIGH
+      vulnerability_class: Format String
+      references:
+        - https://cwe.mitre.org/data/definitions/134.html
+      help: |
+        ## Summary
+        A format string is built by concatenating a variable before passing to Format(), risking format string injection if the variable contains specifiers.
+
+        ## Remediation
+        Keep format strings as pure string literals. Pass all dynamic values as arguments in the array parameter: `Format('Hello %s', [UserName])`.

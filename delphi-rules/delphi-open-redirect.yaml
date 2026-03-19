@@ -1,0 +1,46 @@
+rules:
+  - id: delphi-open-redirect
+    message: >-
+      A URL or redirect target is set from user input or request data
+      without validation. An attacker can craft a link that redirects
+      users to a malicious site for phishing or credential theft. Validate
+      redirect URLs against an allowlist of trusted domains, or use
+      relative paths only.
+    severity: WARNING
+    languages: [generic]
+    paths:
+      include:
+        - "*.pas"
+        - "*.dpr"
+        - "*.inc"
+    pattern-either:
+      # URL property set from user input
+      - pattern: $X.URL := $EDIT.Text
+      - pattern: $X.url := $EDIT.Text
+      # Server-side redirects with request data
+      - pattern: SendRedirect(... Request. ...)
+      - pattern: Response.SendRedirect(... Request. ...)
+      - pattern: Response.SendRedirect($VAR)
+      # Redirect with request-derived data
+      - pattern: |
+          $URL := Request. ...
+          ...
+          SendRedirect($URL)
+      # Regex: URL set from .Text, redirect with request data
+      - pattern-regex: "(?i)\\.(?:URL|url)\\s*:=\\s*\\w+\\.Text\\b"
+      - pattern-regex: "(?i)SendRedirect\\s*\\(.*Request\\."
+      - pattern-regex: "(?i)\\bLocation\\b.*:=.*Request\\."
+    metadata:
+      cwe:
+        - "CWE-601: URL Redirection to Untrusted Site"
+      confidence: MEDIUM
+      impact: MEDIUM
+      vulnerability_class: Open Redirect
+      references:
+        - https://cwe.mitre.org/data/definitions/601.html
+      help: |
+        ## Summary
+        A URL or redirect target is set from user input or request data without validation, enabling phishing via open redirect attacks.
+
+        ## Remediation
+        Validate redirect URLs against an allowlist of trusted domains. Use relative paths only for redirects, or verify the target URL scheme and host before redirecting.

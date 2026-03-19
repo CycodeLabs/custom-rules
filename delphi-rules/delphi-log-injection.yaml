@@ -1,0 +1,34 @@
+rules:
+  - id: delphi-log-injection
+    message: >-
+      User-supplied or external data is concatenated into a log write
+      without sanitizing newline or control characters. An attacker can
+      inject fake log entries via CRLF sequences to forge audit trails,
+      tamper with log analysis, or cause log flooding. Strip or encode
+      CR/LF characters before logging any external input.
+    severity: WARNING
+    languages: [generic]
+    paths:
+      include:
+        - "*.pas"
+        - "*.dpr"
+        - "*.inc"
+    pattern-either:
+      # WriteLn to file handle with external data concatenated
+      - pattern-regex: "(?i)WriteLn\\s*\\(\\s*\\w+\\s*,.*\\+.*(?:Request|User|Name|Input|Query|Param|Field|Remote|IP|Email|Host|Addr|Login|Session|Action|Detail|Message)"
+      # Custom log functions with external data concatenated
+      - pattern-regex: "(?i)(?:WriteLog|LogMessage|AddLog|Log\\.\\w+)\\s*\\(.*\\+.*(?:Request|User|Name|Input|Query|Param|Field|Remote|IP|Email|Host|Addr|Login|Session|Action|Detail)"
+    metadata:
+      cwe:
+        - "CWE-117: Improper Output Neutralization for Logs"
+      confidence: MEDIUM
+      impact: MEDIUM
+      vulnerability_class: Log Injection
+      references:
+        - https://cwe.mitre.org/data/definitions/117.html
+      help: |
+        ## Summary
+        User-supplied data is concatenated into log writes without sanitizing newline or control characters, enabling log injection and audit trail forgery.
+
+        ## Remediation
+        Strip or encode CR/LF characters (chr(13), chr(10)) from all external input before logging. Use structured logging frameworks that automatically handle encoding.

@@ -1,0 +1,34 @@
+rules:
+  - id: delphi-datasnap-no-auth
+    message: >-
+      A DataSnap server class registers server methods via the GetClass
+      handler (PersistentClass assignment), exposing RPC/REST endpoints.
+      Without an AuthenticationManager configured on the
+      TDSHTTPWebDispatcher, these methods are accessible to any
+      unauthenticated client. Configure a TDSAuthenticationManager and
+      enforce credential validation before allowing method invocations.
+    severity: ERROR
+    languages: [generic]
+    paths:
+      include:
+        - "*.pas"
+        - "*.dpr"
+        - "*.inc"
+    pattern-either:
+      - pattern: PersistentClass := $CLASS
+      - pattern-regex: "(?i)PersistentClass\\s*:=\\s*\\w"
+    metadata:
+      cwe:
+        - "CWE-306: Missing Authentication for Critical Function"
+      confidence: MEDIUM
+      impact: HIGH
+      vulnerability_class: Missing Authentication
+      references:
+        - https://cwe.mitre.org/data/definitions/306.html
+        - https://docwiki.embarcadero.com/RADStudio/en/DataSnap_Authentication
+      help: |
+        ## Summary
+        A DataSnap server registers RPC/REST methods via PersistentClass without a TDSAuthenticationManager, exposing endpoints to unauthenticated clients.
+
+        ## Remediation
+        Configure a TDSAuthenticationManager on the TDSHTTPWebDispatcher and implement the OnUserAuthorize and OnUserAuthenticate events to validate credentials.
