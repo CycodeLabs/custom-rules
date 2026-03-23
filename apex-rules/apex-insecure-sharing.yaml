@@ -1,0 +1,32 @@
+rules:
+  - id: apex-insecure-sharing
+    message: >-
+      Class is declared with 'without sharing', bypassing Salesforce
+      record-level security (sharing rules, org-wide defaults). Review
+      whether this is intentional. System-level operations may require
+      this, but user-facing controllers should use 'with sharing'.
+    severity: WARNING
+    languages: [generic]
+    paths:
+      include:
+        - "*.cls"
+        - "*.trigger"
+        - "*.apex"
+    pattern-either:
+      - pattern-regex: "(?i)(?:public|private|global)\\s+without\\s+sharing\\s+class"
+    metadata:
+      cwe:
+        - "CWE-284: Improper Access Control"
+      owasp:
+        - "A01:2021 - Broken Access Control"
+      confidence: HIGH
+      impact: HIGH
+      vulnerability_class: Broken Access Control
+      references:
+        - https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/apex_classes_keywords_sharing.htm
+      help: |
+        ## Summary
+        A class is declared with 'without sharing', which bypasses record-level security and can expose records the running user should not access.
+
+        ## Remediation
+        Use `public with sharing class MyClass` to enforce record-level security. Only use `without sharing` when explicitly required (e.g., system-level operations) and document the justification.

@@ -1,0 +1,36 @@
+rules:
+  - id: apex-bulkification-dos
+    message: >-
+      A DML operation, SOQL query, or HTTP callout is performed inside a
+      loop. This can hit Salesforce governor limits causing denial of
+      service. Collect operations and execute them in bulk outside the loop.
+    severity: WARNING
+    languages: [generic]
+    paths:
+      include:
+        - "*.cls"
+        - "*.trigger"
+        - "*.apex"
+    pattern-either:
+      - pattern-regex: "(?:for|while)\\s*\\([^)]+\\)\\s*\\{[^}]{0,500}(?:insert|update|upsert|delete)\\s+\\w"
+      - pattern-regex: "(?:for|while)\\s*\\([^)]+\\)\\s*\\{[^}]{0,500}\\[\\s*SELECT"
+      - pattern-regex: "(?:for|while)\\s*\\([^)]+\\)\\s*\\{[^}]{0,500}Database\\.(?:insert|update|upsert|delete|query)"
+      - pattern-regex: "(?:for|while)\\s*\\([^)]+\\)\\s*\\{[^}]{0,500}(?:Http|Messaging)\\w*\\.send\\s*\\("
+      - pattern-regex: "do\\s*\\{[^}]{0,500}(?:insert|update|upsert|delete)\\s+\\w[^}]*\\}\\s*while"
+      - pattern-regex: "do\\s*\\{[^}]{0,500}Database\\.(?:insert|update|upsert|delete|query)[^}]*\\}\\s*while"
+    metadata:
+      cwe:
+        - "CWE-400: Uncontrolled Resource Consumption"
+      owasp:
+        - "A04:2021 - Insecure Design"
+      confidence: HIGH
+      impact: MEDIUM
+      vulnerability_class: Denial of Service
+      references:
+        - https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/apex_gov_limits_intro.htm
+      help: |
+        ## Summary
+        DML, SOQL, or callout operations inside loops can exceed Salesforce governor limits, causing failures and denial of service for all users in the transaction.
+
+        ## Remediation
+        Collect records in a List and perform DML after the loop: `List<Contact> toInsert = new List<Contact>(); for (...) { toInsert.add(...); } insert toInsert;`. Use SOQL for-loops or pre-query outside loops.

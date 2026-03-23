@@ -1,0 +1,38 @@
+rules:
+  - id: apex-session-id-leakage
+    message: >-
+      UserInfo.getSessionId() value is sent to an external service, logged,
+      or included in a response. Session IDs allow full impersonation of
+      the user. Never expose session IDs outside the Salesforce platform.
+    severity: ERROR
+    languages: [generic]
+    paths:
+      include:
+        - "*.cls"
+        - "*.trigger"
+        - "*.apex"
+    pattern-either:
+      - pattern-regex: "(?i)System\\.debug\\s*\\([^)]*getSessionId\\s*\\(\\s*\\)"
+      - pattern-regex: "(?i)\\.setHeader\\s*\\([^)]*getSessionId\\s*\\(\\s*\\)"
+      - pattern-regex: "(?i)\\.setBody\\s*\\([^)]*getSessionId\\s*\\(\\s*\\)"
+      - pattern-regex: "(?i)Response\\.\\w+\\s*=.*getSessionId\\s*\\(\\s*\\)"
+      - pattern-regex: "(?i)HttpRequest[^;]*getSessionId\\s*\\(\\s*\\)"
+      - pattern-regex: "(?i)@AuraEnabled[\\s\\S]{0,500}return[^;]*getSessionId\\s*\\(\\s*\\)"
+      - pattern-regex: "(?i)\\w+\\s*=\\s*.*getSessionId\\s*\\(\\s*\\)[^;]*;[\\s\\S]{0,300}(?:System\\.debug|setHeader|setBody|\\.send)"
+    metadata:
+      cwe:
+        - "CWE-200: Exposure of Sensitive Information to an Unauthorized Actor"
+        - "CWE-614: Sensitive Cookie in HTTPS Session Without 'Secure' Attribute"
+      owasp:
+        - "A07:2021 - Identification and Authentication Failures"
+      confidence: HIGH
+      impact: CRITICAL
+      vulnerability_class: Session ID Exposure
+      references:
+        - https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/apex_classes_info.htm
+      help: |
+        ## Summary
+        The Salesforce session ID is sent to an external service, logged, or included in a response. Session IDs allow full account impersonation.
+
+        ## Remediation
+        Use Named Credentials for authenticated callouts instead of session IDs. Never log or return session IDs. If inter-system auth is needed, use OAuth flows or Connected Apps.

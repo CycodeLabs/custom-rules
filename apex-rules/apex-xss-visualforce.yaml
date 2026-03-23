@@ -1,0 +1,37 @@
+rules:
+  - id: apex-xss-visualforce
+    message: >-
+      Output escaping is explicitly disabled in a Visualforce component
+      (escape="false"), or user-controlled data is rendered inside a script
+      tag. An attacker can inject malicious scripts through unescaped
+      output.
+    severity: ERROR
+    languages: [generic]
+    paths:
+      include:
+        - "*.page"
+        - "*.component"
+        - "*.cls"
+    pattern-either:
+      - pattern-regex: "<apex:outputText\\s+[^>]*escape\\s*=\\s*[\"']false[\"']"
+      - pattern-regex: "<apex:outputPanel\\s+[^>]*escape\\s*=\\s*[\"']false[\"']"
+      - pattern-regex: "<apex:outputField\\s+[^>]*escape\\s*=\\s*[\"']false[\"']"
+      - pattern-regex: "<apex:outputLabel\\s+[^>]*escape\\s*=\\s*[\"']false[\"']"
+      - pattern-regex: "(?i)var\\s+\\w+\\s*=\\s*['\"]\\{!(?!JSENCODE|HTMLENCODE|JSINHTMLENCODE|URLENCODE|\\$User|\\$Organization|\\$Api|\\$Label|\\$Resource)\\s*[a-zA-Z_]"
+      - pattern-regex: "(?i)(?:href|src|onclick|onerror|onload|onmouseover)\\s*=\\s*[\"']\\{!(?!JSENCODE|HTMLENCODE|URLENCODE)[^}]*\\}"
+    metadata:
+      cwe:
+        - "CWE-79: Improper Neutralization of Input During Web Page Generation"
+      owasp:
+        - "A03:2021 - Injection"
+      confidence: HIGH
+      impact: HIGH
+      vulnerability_class: Cross-Site Scripting (XSS)
+      references:
+        - https://developer.salesforce.com/docs/atlas.en-us.pages.meta/pages/pages_security_tips_escape_output.htm
+      help: |
+        ## Summary
+        Output escaping is explicitly disabled in Visualforce (escape="false") or merge fields are rendered inside script tags, enabling cross-site scripting attacks.
+
+        ## Remediation
+        Remove `escape="false"` or set `escape="true"` on Visualforce output components. In JavaScript contexts, use `{!JSENCODE(value)}`. For HTML contexts, use `{!HTMLENCODE(value)}`.

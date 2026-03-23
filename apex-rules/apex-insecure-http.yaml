@@ -1,0 +1,33 @@
+rules:
+  - id: apex-insecure-http
+    message: >-
+      An HTTP callout uses an unencrypted http:// endpoint instead of HTTPS.
+      Data transmitted over HTTP can be intercepted and modified by
+      man-in-the-middle attackers. Always use HTTPS for external callouts.
+    severity: ERROR
+    languages: [generic]
+    paths:
+      include:
+        - "*.cls"
+        - "*.trigger"
+        - "*.apex"
+    pattern-either:
+      - pattern-regex: "\\.setEndpoint\\s*\\(\\s*['\"]http://(?!localhost|127\\.0\\.0\\.1)"
+      - pattern-regex: "(?i)new\\s+PageReference\\s*\\(\\s*['\"]http://(?!localhost|127\\.0\\.0\\.1)"
+      - pattern-regex: "(?i)String\\s+\\w*(?:endpoint|calloutUrl|serviceUrl|apiUrl)\\s*=\\s*['\"]http://(?!localhost|127\\.0\\.0\\.1)"
+    metadata:
+      cwe:
+        - "CWE-319: Cleartext Transmission of Sensitive Information"
+      owasp:
+        - "A02:2021 - Cryptographic Failures"
+      confidence: HIGH
+      impact: HIGH
+      vulnerability_class: Cleartext Transmission
+      references:
+        - https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/apex_callouts_http_secure.htm
+      help: |
+        ## Summary
+        An HTTP callout endpoint uses unencrypted http:// instead of https://, exposing transmitted data to interception.
+
+        ## Remediation
+        Replace all `http://` endpoints with `https://`. Configure Remote Site Settings to only allow HTTPS endpoints. Use Named Credentials which enforce HTTPS by default.

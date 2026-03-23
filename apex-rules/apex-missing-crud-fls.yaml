@@ -1,0 +1,33 @@
+rules:
+  - id: apex-missing-crud-fls
+    message: >-
+      A dynamic SOQL query executed via Database.query() does not include
+      WITH SECURITY_ENFORCED. Without CRUD/FLS enforcement, the query may
+      return fields or objects the running user should not access.
+    severity: WARNING
+    languages: [generic]
+    paths:
+      include:
+        - "*.cls"
+        - "*.trigger"
+        - "*.apex"
+    pattern-either:
+      - pattern-regex: "Database\\.query\\s*\\(\\s*['\"](?:(?!SECURITY_ENFORCED|USER_MODE)[^'\"])*['\"]\\s*\\)"
+      - pattern-regex: "Database\\.query\\s*\\(\\s*\\w+\\s*\\)(?![^;]{0,200}(?:SECURITY_ENFORCED|stripInaccessible|AccessLevel\\.USER_MODE))"
+      - pattern-regex: "Database\\.countQuery\\s*\\(\\s*['\"](?:(?!SECURITY_ENFORCED|USER_MODE)[^'\"])*['\"]\\s*\\)"
+    metadata:
+      cwe:
+        - "CWE-284: Improper Access Control"
+      owasp:
+        - "A01:2021 - Broken Access Control"
+      confidence: MEDIUM
+      impact: HIGH
+      vulnerability_class: Missing Access Control
+      references:
+        - https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/apex_classes_perms_enforcing.htm
+      help: |
+        ## Summary
+        A dynamic SOQL query via Database.query() does not include WITH SECURITY_ENFORCED, potentially exposing records or fields the user lacks permission to view.
+
+        ## Remediation
+        Append `WITH SECURITY_ENFORCED` to SOQL queries. For DML, use `Security.stripInaccessible(AccessType.CREATABLE, records)` before insert/update. Check field accessibility with `Schema.sObjectType.Account.fields.Name.isAccessible()`.

@@ -1,0 +1,31 @@
+rules:
+  - id: apex-aura-no-sharing
+    message: >-
+      A class containing @AuraEnabled methods does not declare an explicit
+      sharing keyword. Without 'with sharing', Lightning component server
+      calls may bypass record-level security, exposing data the user
+      should not access.
+    severity: WARNING
+    languages: [generic]
+    paths:
+      include:
+        - "*.cls"
+        - "*.apex"
+    pattern-either:
+      - pattern-regex: "(?si)(?:public|private|global)\\s+(?:virtual\\s+|abstract\\s+)?class\\s+\\w+(?![^{]*\\b(?:with|without|inherited)\\s+sharing\\b)[^{]*\\{[^}]*@AuraEnabled"
+    metadata:
+      cwe:
+        - "CWE-284: Improper Access Control"
+      owasp:
+        - "A01:2021 - Broken Access Control"
+      confidence: HIGH
+      impact: HIGH
+      vulnerability_class: Missing Sharing Declaration
+      references:
+        - https://developer.salesforce.com/docs/atlas.en-us.lightning.meta/lightning/apex_intro.htm
+      help: |
+        ## Summary
+        A class with @AuraEnabled methods lacks an explicit sharing keyword, so Lightning component calls may bypass record-level security.
+
+        ## Remediation
+        Add `with sharing` to the class declaration: `public with sharing class MyController`. Only omit sharing for documented system-level operations.

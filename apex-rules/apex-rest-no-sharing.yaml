@@ -1,0 +1,30 @@
+rules:
+  - id: apex-rest-no-sharing
+    message: >-
+      A @RestResource class does not declare an explicit sharing keyword.
+      REST API endpoints without 'with sharing' may bypass record-level
+      security, allowing API callers to access records they should not see.
+    severity: WARNING
+    languages: [generic]
+    paths:
+      include:
+        - "*.cls"
+        - "*.apex"
+    pattern-either:
+      - pattern-regex: "(?si)@RestResource[^}]*(?:public|private|global)\\s+(?:virtual\\s+|abstract\\s+)?class\\s+\\w+(?![^{]*\\b(?:with|without|inherited)\\s+sharing\\b)"
+    metadata:
+      cwe:
+        - "CWE-284: Improper Access Control"
+      owasp:
+        - "A01:2021 - Broken Access Control"
+      confidence: HIGH
+      impact: HIGH
+      vulnerability_class: Missing Sharing Declaration
+      references:
+        - https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/apex_rest_intro.htm
+      help: |
+        ## Summary
+        A @RestResource class lacks an explicit sharing keyword, so REST API calls may bypass record-level security.
+
+        ## Remediation
+        Add `with sharing` to the class declaration: `@RestResource(urlMapping='/myapi/*') global with sharing class MyApi`. Only omit for documented system-level integrations.

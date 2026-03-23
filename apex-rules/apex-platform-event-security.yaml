@@ -1,0 +1,32 @@
+rules:
+  - id: apex-platform-event-security
+    message: >-
+      EventBus.publish() is called inside a loop, which can exceed governor
+      limits and cause denial of service. Collect events in a list and
+      publish once after the loop.
+    severity: WARNING
+    languages: [generic]
+    paths:
+      include:
+        - "*.cls"
+        - "*.trigger"
+        - "*.apex"
+    pattern-either:
+      - pattern-regex: "(?:for|while)\\s*\\([^)]*\\)\\s*\\{[^}]{0,500}EventBus\\.publish"
+      - pattern-regex: "do\\s*\\{[^}]{0,500}EventBus\\.publish[^}]*\\}\\s*while"
+    metadata:
+      cwe:
+        - "CWE-400: Uncontrolled Resource Consumption"
+      owasp:
+        - "A04:2021 - Insecure Design"
+      confidence: HIGH
+      impact: MEDIUM
+      vulnerability_class: Governor Limit Abuse
+      references:
+        - https://developer.salesforce.com/docs/atlas.en-us.platform_events.meta/platform_events/platform_events_publish_apex.htm
+      help: |
+        ## Summary
+        Platform events are published inside a loop, risking governor limit violations and transaction failures.
+
+        ## Remediation
+        Collect events in a List and publish once: `List<MyEvent__e> events = new List<MyEvent__e>(); for (...) { events.add(...); } EventBus.publish(events);`.

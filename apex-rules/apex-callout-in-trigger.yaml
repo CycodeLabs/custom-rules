@@ -1,0 +1,31 @@
+rules:
+  - id: apex-callout-in-trigger
+    message: >-
+      An HTTP callout is made directly in a trigger context. Callouts in
+      triggers fail when the trigger is invoked from a DML operation that
+      has pending uncommitted work. Use @future(callout=true) or Queueable
+      for async callouts.
+    severity: WARNING
+    languages: [generic]
+    paths:
+      include:
+        - "*.trigger"
+    pattern-either:
+      - pattern-regex: "(?i)\\bHttp\\b\\s*\\w*\\s*=?[^;]*\\.send\\s*\\("
+      - pattern-regex: "(?i)WebServiceCallout\\.invoke\\s*\\("
+    metadata:
+      cwe:
+        - "CWE-400: Uncontrolled Resource Consumption"
+      owasp:
+        - "A04:2021 - Insecure Design"
+      confidence: HIGH
+      impact: MEDIUM
+      vulnerability_class: Governor Limit Violation
+      references:
+        - https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/apex_callouts_wsdl2apex.htm
+      help: |
+        ## Summary
+        HTTP callouts or WSDL callouts in trigger context fail when the trigger runs within a transaction with pending DML, and they consume limited callout quota.
+
+        ## Remediation
+        Move callouts to an async context: `@future(callout=true)` method, Queueable class, or Platform Event trigger. Never make synchronous HTTP calls in triggers.

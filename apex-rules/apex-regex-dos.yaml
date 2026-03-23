@@ -1,0 +1,33 @@
+rules:
+  - id: apex-regex-dos
+    message: >-
+      User-supplied input is passed to Pattern.compile() or
+      Pattern.matches(). A crafted regex can cause catastrophic
+      backtracking, consuming CPU and hitting governor limits (ReDoS).
+    severity: WARNING
+    languages: [generic]
+    paths:
+      include:
+        - "*.cls"
+        - "*.trigger"
+        - "*.apex"
+    pattern-either:
+      - pattern-regex: "Pattern\\.compile\\s*\\([^)]*(?:getParameters\\s*\\(|requestBody|\\.getBody\\s*\\()"
+      - pattern-regex: "Pattern\\.matches\\s*\\([^,]*(?:getParameters\\s*\\(|requestBody|\\.getBody\\s*\\()"
+      - pattern-regex: "\\.(?:matches|replaceAll|split)\\s*\\([^,)]*(?:getParameters\\s*\\(|RestContext\\.request\\.requestBody|\\.getBody\\s*\\()"
+    metadata:
+      cwe:
+        - "CWE-1333: Inefficient Regular Expression Complexity"
+      owasp:
+        - "A04:2021 - Insecure Design"
+      confidence: HIGH
+      impact: MEDIUM
+      vulnerability_class: Regular Expression DoS
+      references:
+        - https://owasp.org/www-community/attacks/Regular_expression_Denial_of_Service_-_ReDoS
+      help: |
+        ## Summary
+        User-controlled input is used as a regex pattern, enabling ReDoS attacks via crafted patterns with catastrophic backtracking.
+
+        ## Remediation
+        Never pass user input directly to Pattern.compile(). If regex matching on user data is needed, use a fixed pattern and pass user input as the string to match against, not as the pattern.

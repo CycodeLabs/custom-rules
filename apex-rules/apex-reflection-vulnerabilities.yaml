@@ -1,0 +1,32 @@
+rules:
+  - id: apex-reflection-vulnerabilities
+    message: >-
+      User-controlled input is passed to Type.forName() or dynamic class
+      instantiation. An attacker can specify arbitrary class names to
+      instantiate unintended classes, potentially executing privileged code.
+    severity: ERROR
+    languages: [generic]
+    paths:
+      include:
+        - "*.cls"
+        - "*.trigger"
+        - "*.apex"
+    pattern-either:
+      - pattern-regex: "Type\\.forName\\s*\\([^)]*(?:getParameters|requestBody|getBody\\s*\\(\\s*\\))"
+      - pattern-regex: "JSON\\.deserialize\\s*\\([^,]*,\\s*Type\\.forName\\s*\\([^)]*(?:getParameters|\\brequestBody\\b|RestContext\\.request)"
+    metadata:
+      cwe:
+        - "CWE-470: Use of Externally-Controlled Input to Select Classes or Code"
+      owasp:
+        - "A03:2021 - Injection"
+      confidence: HIGH
+      impact: CRITICAL
+      vulnerability_class: Unsafe Reflection
+      references:
+        - https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/apex_dynamic_apex.htm
+      help: |
+        ## Summary
+        User-controlled input is used in Type.forName() to dynamically select classes, enabling instantiation of unintended classes with elevated privileges.
+
+        ## Remediation
+        Maintain an explicit allowlist of permitted class names. Map user input to allowed Type values via a Map<String, Type> rather than passing input directly to Type.forName().

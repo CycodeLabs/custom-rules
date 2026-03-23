@@ -1,0 +1,32 @@
+rules:
+  - id: apex-sensitive-data-exposure
+    message: >-
+      An @AuraEnabled or @RemoteAction method queries or returns fields
+      that may contain sensitive PII data (SSN, credit card, date of birth).
+      Ensure these fields are masked or excluded from client-visible
+      responses.
+    severity: WARNING
+    languages: [generic]
+    paths:
+      include:
+        - "*.cls"
+        - "*.apex"
+    pattern-either:
+      - pattern-regex: "(?i)@AuraEnabled[\\s\\S]{0,500}(?:SSN|Social_Security|CreditCard|Credit_Card|CardNumber|Card_Number|TaxId|Tax_ID|BankAccount|Bank_Account|DateOfBirth|Date_Of_Birth|NationalId|National_ID|DriverLicense|Driver_License)(?:__c)?\\b"
+      - pattern-regex: "(?i)@RemoteAction[\\s\\S]{0,500}(?:SSN|Social_Security|CreditCard|Credit_Card|CardNumber|Card_Number|TaxId|Tax_ID|BankAccount|Bank_Account|DateOfBirth|Date_Of_Birth|NationalId|National_ID|DriverLicense|Driver_License)(?:__c)?\\b"
+    metadata:
+      cwe:
+        - "CWE-200: Exposure of Sensitive Information to an Unauthorized Actor"
+      owasp:
+        - "A01:2021 - Broken Access Control"
+      confidence: MEDIUM
+      impact: HIGH
+      vulnerability_class: Sensitive Data Exposure
+      references:
+        - https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/apex_classes_annotation_AuraEnabled.htm
+      help: |
+        ## Summary
+        A client-callable method (@AuraEnabled/@RemoteAction) queries or returns fields containing sensitive PII (SSN, credit card numbers), potentially exposing them to the browser.
+
+        ## Remediation
+        Use Security.stripInaccessible() to filter sensitive fields. Avoid including PII fields in Lightning component responses. Mask sensitive values before returning to the client.

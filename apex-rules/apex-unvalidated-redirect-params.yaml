@@ -1,0 +1,33 @@
+rules:
+  - id: apex-unvalidated-redirect-params
+    message: >-
+      User-supplied page parameter is used to construct a URL or page
+      reference without validation. This can lead to open redirect,
+      SSRF, or injection depending on how the URL is consumed.
+    severity: WARNING
+    languages: [generic]
+    paths:
+      include:
+        - "*.cls"
+        - "*.trigger"
+        - "*.apex"
+    pattern-either:
+      - pattern-regex: "(?i)new\\s+(?:PageReference|URL)\\s*\\([^)]*\\+[^)]*getParameters\\s*\\(\\s*\\)\\.get"
+      - pattern-regex: "(?i)\\.setEndpoint\\s*\\([^)]*getParameters\\s*\\(\\s*\\)\\.get"
+      - pattern-regex: "(?i)HttpRequest[^;]*\\.setEndpoint\\s*\\([^)]*\\+[^)]*getParameters"
+    metadata:
+      cwe:
+        - "CWE-20: Improper Input Validation"
+      owasp:
+        - "A03:2021 - Injection"
+      confidence: HIGH
+      impact: HIGH
+      vulnerability_class: Input Validation
+      references:
+        - https://developer.salesforce.com/docs/atlas.en-us.pages.meta/pages/pages_security_tips_input_validation.htm
+      help: |
+        ## Summary
+        User-supplied page parameters are concatenated into URLs or endpoint addresses without validation, enabling injection or SSRF attacks.
+
+        ## Remediation
+        Validate user input against an allowlist before using in URL construction. Use `URL.getSalesforceBaseUrl()` for internal redirects. Never pass raw parameters to setEndpoint().

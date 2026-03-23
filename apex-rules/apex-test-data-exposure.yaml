@@ -1,0 +1,30 @@
+rules:
+  - id: apex-test-data-exposure
+    message: >-
+      Test class uses SeeAllData=true, which accesses production data in
+      tests. This bypasses test isolation and can lead to unpredictable
+      test behavior or accidental data modification.
+    severity: WARNING
+    languages: [generic]
+    paths:
+      include:
+        - "*.cls"
+        - "*.apex"
+    pattern-either:
+      - pattern-regex: "@[Ii]s[Tt]est\\s*\\(\\s*[Ss]ee[Aa]ll[Dd]ata\\s*=\\s*true\\s*\\)"
+    metadata:
+      cwe:
+        - "CWE-668: Exposure of Resource to Wrong Sphere"
+      owasp:
+        - "A04:2021 - Insecure Design"
+      confidence: HIGH
+      impact: MEDIUM
+      vulnerability_class: Test Isolation Bypass
+      references:
+        - https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/apex_testing_best_practices.htm
+      help: |
+        ## Summary
+        Test class uses SeeAllData=true which bypasses test data isolation and accesses real org data, leading to fragile tests and potential data exposure.
+
+        ## Remediation
+        Remove `SeeAllData=true`. Create test data programmatically in @TestSetup methods. Use `Test.setMock()` for callouts and `Test.loadData()` for static resources.

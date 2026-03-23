@@ -1,0 +1,33 @@
+rules:
+  - id: apex-file-upload-vulnerabilities
+    message: >-
+      An uploaded file name is taken from user-supplied parameters without
+      sanitization, or file content is used without type/size validation.
+      An attacker can upload malicious files or exploit path traversal in
+      file names.
+    severity: ERROR
+    languages: [generic]
+    paths:
+      include:
+        - "*.cls"
+        - "*.trigger"
+        - "*.apex"
+    pattern-either:
+      - pattern-regex: "\\.(?:Name|FileName)\\s*=.*getParameters\\s*\\(\\s*\\)\\.get"
+      - pattern-regex: "(?i)ContentVersion\\s+\\w+[^;]*\\.VersionData\\s*=.*(?:\\.getBody\\s*\\(|requestBody)"
+    metadata:
+      cwe:
+        - "CWE-434: Unrestricted Upload of File with Dangerous Type"
+      owasp:
+        - "A01:2021 - Broken Access Control"
+      confidence: MEDIUM
+      impact: HIGH
+      vulnerability_class: Insecure File Upload
+      references:
+        - https://developer.salesforce.com/docs/atlas.en-us.pages.meta/pages/pages_compref_inputFile.htm
+      help: |
+        ## Summary
+        File upload handling uses client-supplied file names or content without validation, enabling malicious file uploads or file name manipulation.
+
+        ## Remediation
+        Validate content type via MIME checking, enforce an allowlist of extensions, limit file size, and sanitize file names: `fileName = fileName.replaceAll('[^a-zA-Z0-9._-]', '')`.

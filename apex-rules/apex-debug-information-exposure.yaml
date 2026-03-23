@@ -1,0 +1,32 @@
+rules:
+  - id: apex-debug-information-exposure
+    message: >-
+      Sensitive data such as passwords, secrets, or tokens is included in
+      System.debug() statements. Debug logs can be accessed by admins and
+      users with the right permissions, potentially exposing credentials.
+    severity: WARNING
+    languages: [generic]
+    paths:
+      include:
+        - "*.cls"
+        - "*.trigger"
+        - "*.apex"
+    pattern-either:
+      - pattern-regex: "(?i)System\\.debug\\s*\\([^)]*\\b(?:password|secret|apiKey|api_key|auth_token|bearer|private_key|secret_key|credential)\\b[^)]*\\)"
+      - pattern-regex: "(?i)System\\.debug\\s*\\(\\s*['\"][^'\"]*(?:password|secret|api.?key|token)\\s*[:=][^'\"]*['\"]\\s*\\+[^)]*\\)"
+    metadata:
+      cwe:
+        - "CWE-532: Insertion of Sensitive Information into Log File"
+      owasp:
+        - "A09:2021 - Security Logging and Monitoring Failures"
+      confidence: MEDIUM
+      impact: MEDIUM
+      vulnerability_class: Information Exposure
+      references:
+        - https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/apex_debugging_system_log.htm
+      help: |
+        ## Summary
+        Sensitive data (passwords, tokens, secrets) is logged via System.debug() or included in exception messages, potentially exposing credentials in debug logs.
+
+        ## Remediation
+        Never log sensitive values. Log only non-sensitive metadata: `System.debug('Auth attempt for user: ' + username)`. Sanitize data before logging. Use appropriate LoggingLevel values.

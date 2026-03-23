@@ -1,0 +1,34 @@
+rules:
+  - id: apex-soql-injection
+    message: >-
+      User input is concatenated into a SOQL/SOSL query string passed to
+      Database.query() or Database.search(). An attacker can manipulate the
+      query to access unauthorized records or exfiltrate data. Use bind
+      variables or String.escapeSingleQuotes() instead.
+    severity: ERROR
+    languages: [generic]
+    paths:
+      include:
+        - "*.cls"
+        - "*.trigger"
+        - "*.apex"
+    pattern-either:
+      - pattern-regex: "Database\\.query\\s*\\(\\s*['\"].*SELECT.*['\"]\\s*\\+"
+      - pattern-regex: "Database\\.search\\s*\\(\\s*['\"]\\s*FIND\\s+.*\\+"
+      - pattern-regex: "Database\\.countQuery\\s*\\(\\s*['\"].*SELECT.*['\"]\\s*\\+"
+    metadata:
+      cwe:
+        - "CWE-89: Improper Neutralization of Special Elements used in an SQL Command"
+      owasp:
+        - "A03:2021 - Injection"
+      confidence: HIGH
+      impact: CRITICAL
+      vulnerability_class: SOQL Injection
+      references:
+        - https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/apex_dynamic_soql.htm
+      help: |
+        ## Summary
+        User input is concatenated into a dynamic SOQL/SOSL query, enabling injection of arbitrary query logic to bypass access controls or exfiltrate data.
+
+        ## Remediation
+        Use bind variables in inline SOQL: `[SELECT Id FROM Account WHERE Name = :userInput]`. For dynamic SOQL, use `String.escapeSingleQuotes()` on all user-supplied values before concatenation.

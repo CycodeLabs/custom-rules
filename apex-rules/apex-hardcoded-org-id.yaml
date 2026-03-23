@@ -1,0 +1,36 @@
+rules:
+  - id: apex-hardcoded-org-id
+    message: >-
+      A Salesforce org ID or instance URL is hardcoded in the source code.
+      This breaks portability across sandboxes and production, and may
+      expose org-specific information. Use UserInfo.getOrganizationId()
+      or URL.getOrgDomainUrl() instead.
+    severity: WARNING
+    languages: [generic]
+    paths:
+      include:
+        - "*.cls"
+        - "*.trigger"
+        - "*.apex"
+      exclude:
+        - "*Test*.cls"
+        - "*_Test.cls"
+    pattern-either:
+      - pattern-regex: "['\"]00D[a-zA-Z0-9]{12,15}['\"]"
+      - pattern-regex: "(?i)['\"]https?://[a-zA-Z0-9-]+\\.(?:my\\.salesforce\\.com|salesforce\\.com|force\\.com|lightning\\.force\\.com)['\"]"
+    metadata:
+      cwe:
+        - "CWE-547: Use of Hard-coded, Security-relevant Constants"
+      owasp:
+        - "A05:2021 - Security Misconfiguration"
+      confidence: HIGH
+      impact: MEDIUM
+      vulnerability_class: Hardcoded Configuration
+      references:
+        - https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/apex_methods_system_userinfo.htm
+      help: |
+        ## Summary
+        A Salesforce org ID or instance URL is hardcoded, breaking deployment portability and potentially exposing org-specific details.
+
+        ## Remediation
+        Use `UserInfo.getOrganizationId()` for org ID checks. Use `URL.getOrgDomainUrl()` or `URL.getSalesforceBaseUrl()` for instance URLs. Store environment-specific values in Custom Metadata Types.

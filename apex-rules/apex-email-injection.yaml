@@ -1,0 +1,36 @@
+rules:
+  - id: apex-email-injection
+    message: >-
+      User input from page parameters is used directly in email recipient,
+      subject, or body fields without validation. An attacker can inject
+      additional recipients or craft phishing content.
+    severity: WARNING
+    languages: [generic]
+    paths:
+      include:
+        - "*.cls"
+        - "*.trigger"
+        - "*.apex"
+    pattern-either:
+      - pattern-regex: "\\.setToAddresses\\s*\\([^)]*(?:getParameters|RestContext\\.request)"
+      - pattern-regex: "\\.setCcAddresses\\s*\\([^)]*(?:getParameters|RestContext\\.request)"
+      - pattern-regex: "\\.setBccAddresses\\s*\\([^)]*(?:getParameters|RestContext\\.request)"
+      - pattern-regex: "\\.setSubject\\s*\\([^)]*(?:getParameters|RestContext\\.request)"
+      - pattern-regex: "\\.setHtmlBody\\s*\\([^)]*(?:getParameters|RestContext\\.request)"
+      - pattern-regex: "\\.setPlainTextBody\\s*\\([^)]*(?:getParameters|RestContext\\.request)"
+    metadata:
+      cwe:
+        - "CWE-20: Improper Input Validation"
+      owasp:
+        - "A03:2021 - Injection"
+      confidence: HIGH
+      impact: MEDIUM
+      vulnerability_class: Email Injection
+      references:
+        - https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/apex_classes_email_outbound_single.htm
+      help: |
+        ## Summary
+        User input from page parameters is passed directly to email recipient, subject, or body fields, enabling email injection or phishing.
+
+        ## Remediation
+        Validate email addresses with a regex pattern before use. Strip CR/LF characters from subjects. Sanitize HTML body content. Never pass raw user input to email methods.

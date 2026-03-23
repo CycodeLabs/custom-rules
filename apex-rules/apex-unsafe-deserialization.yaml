@@ -1,0 +1,33 @@
+rules:
+  - id: apex-unsafe-deserialization
+    message: >-
+      User-supplied data from request parameters or REST body is
+      deserialized without prior validation. Malformed or malicious input
+      can cause unexpected behavior, data injection, or denial of service.
+    severity: ERROR
+    languages: [generic]
+    paths:
+      include:
+        - "*.cls"
+        - "*.trigger"
+        - "*.apex"
+    pattern-either:
+      - pattern-regex: "JSON\\.deserialize\\s*\\([^,]*(?:getParameters\\s*\\(|RestContext\\.request\\.requestBody|\\.getBody\\s*\\(\\s*\\))"
+      - pattern-regex: "JSON\\.deserializeUntyped\\s*\\([^)]*(?:getParameters\\s*\\(|RestContext\\.request\\.requestBody|\\.getBody\\s*\\(\\s*\\))"
+      - pattern-regex: "JSON\\.deserializeStrict\\s*\\([^,]*(?:getParameters\\s*\\(|RestContext\\.request\\.requestBody|\\.getBody\\s*\\(\\s*\\))"
+    metadata:
+      cwe:
+        - "CWE-502: Deserialization of Untrusted Data"
+      owasp:
+        - "A08:2021 - Software and Data Integrity Failures"
+      confidence: HIGH
+      impact: HIGH
+      vulnerability_class: Unsafe Deserialization
+      references:
+        - https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/apex_json_deserialization.htm
+      help: |
+        ## Summary
+        User-supplied data from page parameters or REST request bodies is deserialized without validation, risking data injection or denial of service.
+
+        ## Remediation
+        Validate JSON structure and content before deserialization. Use typed deserialization (`JSON.deserialize(data, MyClass.class)`) instead of `deserializeUntyped`. Wrap in try-catch and reject invalid input.

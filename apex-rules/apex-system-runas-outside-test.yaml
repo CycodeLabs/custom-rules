@@ -1,0 +1,40 @@
+rules:
+  - id: apex-system-runas-outside-test
+    message: >-
+      System.runAs() is used outside a test class. This method only
+      functions in test execution and has no effect in production code,
+      making this dead code that indicates a logic error or misunderstanding
+      of the API.
+    severity: WARNING
+    languages: [generic]
+    paths:
+      include:
+        - "*.cls"
+        - "*.trigger"
+        - "*.apex"
+      exclude:
+        - "*Test*.cls"
+        - "*_Test.cls"
+        - "*test*.cls"
+        - "*_test.cls"
+        - "*Mock*.cls"
+        - "*mock*.cls"
+        - "*Helper*Test*.cls"
+    pattern-either:
+      - pattern-regex: "System\\.runAs\\s*\\("
+    metadata:
+      cwe:
+        - "CWE-269: Improper Privilege Management"
+      owasp:
+        - "A04:2021 - Insecure Design"
+      confidence: HIGH
+      impact: LOW
+      vulnerability_class: Dead Code / Logic Error
+      references:
+        - https://developer.salesforce.com/docs/atlas.en-us.apexcode.meta/apexcode/apex_testing_tools_runas.htm
+      help: |
+        ## Summary
+        System.runAs() is used outside a test class. This method only functions during test execution and is a no-op in production, indicating a logic error.
+
+        ## Remediation
+        Remove System.runAs() from production code. Use sharing rules and profile permissions for access control. System.runAs() is designed exclusively for test classes.

@@ -1,0 +1,32 @@
+rules:
+  - id: apex-open-redirect
+    message: >-
+      A PageReference redirect URL is constructed from user-supplied
+      parameters without validation. An attacker can craft a link that
+      redirects users to a malicious site for phishing or credential theft.
+    severity: ERROR
+    languages: [generic]
+    paths:
+      include:
+        - "*.cls"
+        - "*.trigger"
+        - "*.apex"
+    pattern-either:
+      - pattern-regex: "new\\s+PageReference\\s*\\([^)]*getParameters\\s*\\(\\s*\\)\\.get"
+      - pattern-regex: "new\\s+PageReference\\s*\\(\\s*['\"][^'\"]*['\"]\\s*\\+[^)]*getParameters"
+    metadata:
+      cwe:
+        - "CWE-601: URL Redirection to Untrusted Site"
+      owasp:
+        - "A01:2021 - Broken Access Control"
+      confidence: HIGH
+      impact: MEDIUM
+      vulnerability_class: Open Redirect
+      references:
+        - https://developer.salesforce.com/docs/atlas.en-us.pages.meta/pages/pages_security_tips_redirect.htm
+      help: |
+        ## Summary
+        A PageReference is constructed from user-supplied URL parameters without validation, enabling open redirect attacks for phishing.
+
+        ## Remediation
+        Validate redirect targets against an allowlist of permitted paths. Use relative paths only: `new PageReference('/apex/SafePage')`. Never pass raw user input to PageReference constructors.
