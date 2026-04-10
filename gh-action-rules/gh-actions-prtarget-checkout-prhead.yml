@@ -1,0 +1,34 @@
+rules:
+  - id: gh-actions-prtarget-checkout-prhead
+    message: >
+      A pull_request_target workflow checks out the PR head ref or SHA. This runs
+      untrusted fork code in a privileged context with access to secrets and write tokens.
+    severity: ERROR
+    languages:
+      - yaml
+    paths:
+      include:
+        - ".github/**"
+        - "workflows/**"
+    patterns:
+      - pattern-regex: '(?i)pull_request_target\s*:'
+      - pattern-regex: '(?i)uses\s*:\s*actions/checkout@[^ \n]+'
+      - pattern-regex: '(?i)ref\s*:\s*\$\{\{\s*github\.event\.pull_request\.'
+    metadata:
+      policy: "Pull Request Target — Untrusted Checkout"
+      help: |
+        ## Summary
+        `pull_request_target` runs in the context of the base branch with full secret
+        access and a write GITHUB_TOKEN. Checking out the PR head (`github.event.pull_request.head.sha`
+        or `.head.ref`) brings untrusted code into this privileged context. An attacker can
+        open a PR that modifies build scripts, test configs, or Makefiles to execute arbitrary
+        commands with elevated privileges.
+
+        ## Remediation
+        - Never check out PR head code in `pull_request_target` workflows.
+        - Use the `pull_request` trigger instead (read-only token, no secrets from forks).
+        - If you must process PR code, do so in a sandboxed, unprivileged job and pass
+          only verified outputs to privileged jobs.
+
+        ## References
+        - https://securitylab.github.com/research/github-actions-preventing-pwn-requests/

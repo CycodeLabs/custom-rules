@@ -1,0 +1,34 @@
+rules:
+  - id: gh-actions-artifact-exec-unverified
+    message: >
+      Downloaded artifacts are executed or deployed without integrity verification
+      (checksum, signature, or provenance check). Artifacts can be poisoned upstream.
+    severity: WARNING
+    languages:
+      - yaml
+    paths:
+      include:
+        - ".github/**"
+        - "workflows/**"
+    patterns:
+      - pattern-regex: '(?i)uses\s*:\s*actions/download-artifact@[^ \n]+'
+      - pattern-either:
+          - pattern-regex: '(?mis)^\s*-\s*run\s*:(?:[^\n]*|\s*\|[^\n]*\n(?:(?:\s{2,}.*\n))*?)(?:bash\b|sh\b|chmod\s+\+x|source\b|\.\s+|python\b|node\b|\.\/)'
+          - pattern-regex: '(?mis)^\s*-\s*run\s*:(?:[^\n]*|\s*\|[^\n]*\n(?:(?:\s{2,}.*\n))*?)(?:docker\s+load|docker\s+import|helm\s+install|kubectl\s+apply|terraform\s+apply)'
+      - pattern-not-regex: '(?i)(?:sha256sum|checksum|verify|cosign|slsa-verifier|attestation|gpg\s+--verify)'
+    metadata:
+      policy: "Artifacts — Unverified Execution"
+      help: |
+        ## Summary
+        Executing or deploying artifacts downloaded from GitHub Actions without verifying
+        their integrity risks artifact poisoning. A compromised upstream workflow can
+        upload a malicious artifact that gets deployed to production.
+
+        ## Remediation
+        - Verify artifact checksums or signatures before execution.
+        - Use `slsa-verifier` or `cosign verify` on downloaded artifacts.
+        - Prefer declarative deployments over executing artifact content directly.
+        - Use `actions/attest-build-provenance` in the producing workflow.
+
+        ## References
+        - https://docs.github.com/en/actions/security-guides/using-artifact-attestations-to-establish-provenance-for-builds

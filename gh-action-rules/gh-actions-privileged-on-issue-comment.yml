@@ -1,0 +1,34 @@
+rules:
+  - id: gh-actions-privileged-on-issue-comment
+    message: >
+      A workflow triggered by issue_comment has write permissions. Any GitHub user who
+      can comment on issues can trigger this workflow, potentially executing privileged
+      operations without proper authorization.
+    severity: WARNING
+    languages:
+      - yaml
+    paths:
+      include:
+        - ".github/**"
+        - "workflows/**"
+    patterns:
+      - pattern-regex: '(?i)on\s*:\s*(?:.*\n)*\s*issue_comment\s*:'
+      - pattern-regex: '(?im)^\s+\w[\w-]*\s*:\s*write\b'
+    metadata:
+      policy: "Unsafe Triggers — Privileged issue_comment"
+      help: |
+        ## Summary
+        `issue_comment` workflows run in the context of the base branch with access to
+        secrets and the GITHUB_TOKEN. Since any user who can comment on issues or PRs can
+        trigger the workflow, write permissions create a privilege escalation path.
+
+        ## Remediation
+        - Verify the commenter's permissions before executing privileged operations:
+          ```yaml
+          if: github.event.comment.author_association == 'MEMBER' || github.event.comment.author_association == 'OWNER'
+          ```
+        - Use `pull-requests: read` or the minimum required permissions.
+        - Consider requiring a specific label on the issue before the workflow acts.
+
+        ## References
+        - https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#issue_comment

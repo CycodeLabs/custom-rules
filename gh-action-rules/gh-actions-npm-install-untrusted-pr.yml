@@ -1,0 +1,34 @@
+rules:
+  - id: gh-actions-npm-install-untrusted-pr
+    message: >
+      npm/yarn/pnpm install runs on code checked out from a pull request. Malicious
+      preinstall/postinstall scripts in package.json can execute arbitrary code on the
+      runner.
+    severity: ERROR
+    languages:
+      - yaml
+    paths:
+      include:
+        - ".github/**"
+        - "workflows/**"
+    patterns:
+      - pattern-regex: '(?i)(?:pull_request_target|pull_request)\s*:'
+      - pattern-regex: '(?i)uses\s*:\s*actions/checkout@[^ \n]+'
+      - pattern-regex: '(?mis)^\s*-\s*run\s*:(?:[^\n]*|\s*\|[^\n]*\n(?:(?:\s{2,}.*\n))*?)(?:npm\s+(?:install|ci)|yarn(?:\s+install)?|pnpm\s+install)\b'
+    metadata:
+      policy: "Code Execution — Package Install on Untrusted Code"
+      help: |
+        ## Summary
+        `npm install` / `yarn install` executes lifecycle scripts (`preinstall`,
+        `postinstall`) defined in the project's `package.json`. An attacker can modify
+        a PR to add scripts that exfiltrate secrets, install backdoors, or modify
+        subsequent build outputs.
+
+        ## Remediation
+        - Use `--ignore-scripts` flag: `npm ci --ignore-scripts`
+        - Run dependency installation in a sandboxed job without secrets.
+        - Require manual approval for PRs from external contributors.
+        - Use `npm ci --ignore-scripts` followed by explicit, audited build steps.
+
+        ## References
+        - https://docs.npmjs.com/cli/v10/using-npm/scripts#life-cycle-scripts

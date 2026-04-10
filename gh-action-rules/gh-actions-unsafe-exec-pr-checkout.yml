@@ -1,0 +1,37 @@
+rules:
+  - id: gh-actions-unsafe-exec-pr-checkout
+    message: >
+      Workflow checks out PR code and runs test or build commands. Untrusted PR code can
+      contain malicious test fixtures, Makefiles, or configuration that execute arbitrary
+      commands with the job's permissions.
+    severity: ERROR
+    languages:
+      - yaml
+    paths:
+      include:
+        - ".github/**"
+        - "workflows/**"
+    patterns:
+      - pattern-regex: '(?i)(?:pull_request_target|pull_request)\s*:'
+      - pattern-regex: '(?i)uses\s*:\s*actions/checkout@[^ \n]+'
+      - pattern-regex: '(?mis)^\s*-\s*run\s*:(?:[^\n]*|\s*\|[^\n]*\n(?:(?:\s{2,}.*\n))*?)(?:npm\s+test|npm\s+run|npx\s|yarn\s+test|yarn\s+run|pytest|python\s+-m\s+pytest|go\s+test|make\s+test|make\s+check|gradle\s+test|mvn\s+test|cargo\s+test|bundle\s+exec\s+rspec|jest\b|mocha\b|vitest\b)\b'
+    metadata:
+      policy: "Code Execution — Tests on Untrusted Code"
+      help: |
+        ## Summary
+        Running test commands (`npm test`, `pytest`, `go test`, `make test`, etc.) on
+        code from a pull request executes attacker-controlled code. Test configuration
+        files, `conftest.py`, `jest.config.js`, `Makefile`, and `package.json` scripts
+        can all contain arbitrary commands.
+
+        For `pull_request_target`, the risk is critical (secrets and write token available).
+        For `pull_request`, the risk is lower (read-only token, no fork secrets) but code
+        still executes on the runner.
+
+        ## Remediation
+        - Require approval before running CI on first-time contributor PRs.
+        - Use `pull_request` instead of `pull_request_target` to limit privileges.
+        - Run tests in a sandboxed environment without secrets or write tokens.
+
+        ## References
+        - https://securitylab.github.com/research/github-actions-preventing-pwn-requests/

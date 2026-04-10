@@ -1,0 +1,35 @@
+rules:
+  - id: gh-actions-insecure-curl-bash
+    message: >
+      Remote script is fetched and piped directly to a shell (curl/wget | bash/sh).
+      This executes untrusted code without any verification.
+    severity: ERROR
+    languages:
+      - yaml
+    paths:
+      include:
+        - ".github/**"
+        - "workflows/**"
+    pattern-either:
+      - pattern-regex: '(?mi)^\s*-\s*run\s*:[^\n]*\b(?:curl|wget)\b[^\n]*\|\s*(?:sudo\s+)?(?:bash|sh)\b'
+      - pattern-regex: '(?mis)^\s*-\s*run\s*:\s*\|[^\n]*\n(?:(?:\s{2,}.*\n))*?.*\b(?:curl|wget)\b.*\|\s*(?:sudo\s+)?(?:bash|sh)\b'
+    metadata:
+      policy: "Supply Chain — Remote Code Execution"
+      help: |
+        ## Summary
+        Piping remote scripts directly into a shell executes untrusted code without any
+        opportunity to inspect, verify a checksum, or validate a signature. MITM attacks,
+        compromised CDNs, or transient corruption can deliver malicious payloads.
+
+        ## Remediation
+        Download the script first, verify its integrity, then execute:
+        ```yaml
+        - run: |
+            curl -fsSL -o install.sh https://example.com/install.sh
+            echo "expected_sha256  install.sh" | sha256sum -c -
+            bash install.sh
+        ```
+        Prefer versioned, pinned GitHub Actions over ad-hoc install scripts.
+
+        ## References
+        - https://www.idontplaydarts.com/2016/04/detecting-curl-pipe-bash-server-side/

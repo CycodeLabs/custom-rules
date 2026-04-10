@@ -1,0 +1,30 @@
+rules:
+  - id: gh-actions-cache-in-prtarget
+    message: >
+      actions/cache is used in a pull_request_target workflow. Cache entries can be
+      poisoned by untrusted PR code and then consumed by subsequent trusted runs.
+    severity: WARNING
+    languages:
+      - yaml
+    paths:
+      include:
+        - ".github/**"
+        - "workflows/**"
+    patterns:
+      - pattern-regex: '(?i)on\s*:\s*(?:\[?\s*pull_request_target\b|(?:.*\n)*\s*pull_request_target\s*:)'
+      - pattern-regex: '(?i)uses\s*:\s*actions/cache@[^ \n]+'
+    metadata:
+      policy: "Pull Request Target — Cache Poisoning"
+      help: |
+        ## Summary
+        `pull_request_target` workflows that use `actions/cache` allow untrusted PR code
+        to write to caches shared with the base branch. A malicious PR can poison cached
+        dependencies or build artifacts, which are then consumed by legitimate workflow runs.
+
+        ## Remediation
+        - Avoid using `actions/cache` in `pull_request_target` workflows.
+        - Scope cache keys tightly so PR caches do not overlap with base branch caches.
+        - Use `pull_request` trigger instead, where cache isolation is enforced.
+
+        ## References
+        - https://github.com/actions/cache/blob/main/tips-and-workarounds.md

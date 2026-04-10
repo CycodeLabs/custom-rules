@@ -1,0 +1,36 @@
+rules:
+  - id: gh-actions-untrusted-docker-build
+    message: >
+      docker build runs on a Dockerfile checked out from a pull request. The Dockerfile's
+      RUN instructions execute arbitrary commands during the build with access to the
+      runner's network and, in pull_request_target, secrets.
+    severity: ERROR
+    languages:
+      - yaml
+    paths:
+      include:
+        - ".github/**"
+        - "workflows/**"
+    patterns:
+      - pattern-regex: '(?i)(?:pull_request_target|pull_request)\s*:'
+      - pattern-regex: '(?i)uses\s*:\s*actions/checkout@[^ \n]+'
+      - pattern-either:
+          - pattern-regex: '(?mis)^\s*-\s*run\s*:(?:[^\n]*|\s*\|[^\n]*\n(?:(?:\s{2,}.*\n))*?)docker\s+build\b'
+          - pattern-regex: '(?i)uses\s*:\s*docker/build-push-action@[^ \n]+'
+    metadata:
+      policy: "Code Execution — Untrusted Docker Build"
+      help: |
+        ## Summary
+        A `docker build` using an attacker-controlled Dockerfile runs arbitrary `RUN`
+        instructions during the image build. In a `pull_request_target` context, this
+        code has access to secrets and write tokens. Even in `pull_request` context,
+        the build can exfiltrate source code or abuse runner resources.
+
+        ## Remediation
+        - Only build Docker images from trusted code (base branch), not PR head code.
+        - Use `pull_request` trigger instead of `pull_request_target`.
+        - Validate Dockerfiles before building (e.g., hadolint).
+        - Run Docker builds in an isolated, unprivileged job.
+
+        ## References
+        - https://securitylab.github.com/research/github-actions-preventing-pwn-requests/

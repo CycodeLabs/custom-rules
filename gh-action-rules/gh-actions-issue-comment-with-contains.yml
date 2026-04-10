@@ -1,0 +1,32 @@
+rules:
+  - id: gh-actions-issue-comment-with-contains
+    message: >
+      An issue_comment-triggered workflow uses 'contains(github.event.comment.body, ...)'
+      to gate execution. Comment body content is fully user-controlled and can be crafted
+      to match any expected string.
+    severity: WARNING
+    languages:
+      - yaml
+    paths:
+      include:
+        - ".github/**"
+        - "workflows/**"
+    patterns:
+      - pattern-regex: '(?i)on\s*:\s*(?:.*\n)*\s*issue_comment\s*:'
+      - pattern-regex: '(?i)if\s*:\s*contains\s*\(\s*github\.event\.comment\.body\s*,'
+    metadata:
+      policy: "Unsafe Triggers — Comment-Body Gating"
+      help: |
+        ## Summary
+        Using `contains(github.event.comment.body, '/deploy')` as a gate is trivially
+        bypassed: any user who can comment on the issue can include the trigger string.
+        This is not an authorization check.
+
+        ## Remediation
+        - Check the commenter's role (`author_association`) instead of comment content.
+        - Require the commenter to be a MEMBER, OWNER, or COLLABORATOR.
+        - Use GitHub's native deployment environments with required reviewers for
+          deploy workflows.
+
+        ## References
+        - https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#issue_comment

@@ -1,0 +1,32 @@
+rules:
+  - id: gh-actions-overpermissive-token
+    message: >
+      GITHUB_TOKEN has write scope granted at workflow or job level. Write permissions
+      increase blast radius if any step in the job is compromised.
+    severity: WARNING
+    languages:
+      - yaml
+    paths:
+      include:
+        - ".github/**"
+        - "workflows/**"
+    pattern-regex: '(?im)^\s*permissions\s*:\s*\n(?:\s+\w[\w-]*\s*:\s*\w+\n)*?\s+\w[\w-]*\s*:\s*write\b'
+    metadata:
+      policy: "Permissions — Excessive Write Scope"
+      help: |
+        ## Summary
+        Granting write scopes to the GITHUB_TOKEN increases the blast radius if a job is
+        compromised via a malicious action, dependency, or script injection. Each write
+        scope (contents, packages, pull-requests, etc.) enables specific attack vectors.
+
+        ## Remediation
+        Apply the principle of least privilege. Only grant write scopes that are strictly
+        required for the job's function:
+        ```yaml
+        permissions:
+          contents: read
+          pull-requests: write  # only if the job needs to comment on PRs
+        ```
+
+        ## References
+        - https://docs.github.com/en/actions/security-guides/automatic-token-authentication#modifying-the-permissions-for-the-github_token

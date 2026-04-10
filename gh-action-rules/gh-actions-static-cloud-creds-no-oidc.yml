@@ -1,0 +1,57 @@
+rules:
+  - id: gh-actions-static-cloud-creds-no-oidc
+    message: >
+      Workflow uses static cloud credentials (AWS access keys, GCP service account keys,
+      Azure client secrets) instead of OIDC-based short-lived tokens. Static credentials
+      are long-lived and high-risk if leaked.
+    severity: WARNING
+    languages:
+      - yaml
+    paths:
+      include:
+        - ".github/**"
+        - "workflows/**"
+    patterns:
+      - pattern-either:
+          - pattern-regex: '(?i)AWS_ACCESS_KEY_ID\s*:\s*\$\{\{\s*secrets\.'
+          - pattern-regex: '(?i)AWS_SECRET_ACCESS_KEY\s*:\s*\$\{\{\s*secrets\.'
+          - pattern-regex: '(?i)GOOGLE_APPLICATION_CREDENTIALS\s*:\s*\$\{\{\s*secrets\.'
+          - pattern-regex: '(?i)GOOGLE_CREDENTIALS\s*:\s*\$\{\{\s*secrets\.'
+          - pattern-regex: '(?i)AZURE_CLIENT_SECRET\s*:\s*\$\{\{\s*secrets\.'
+          - pattern-regex: '(?i)ARM_CLIENT_SECRET\s*:\s*\$\{\{\s*secrets\.'
+          - pattern-regex: '(?i)aws\s+configure\s+set\s+aws_access_key_id'
+      - pattern-not-regex: '(?i)(?:role-to-assume|workload_identity_provider|federated-credentials|oidc)'
+    metadata:
+      policy: "Secrets — Static Cloud Credentials"
+      help: |
+        ## Summary
+        Static cloud credentials (access keys, service account JSON keys, client secrets)
+        are long-lived, hard to rotate, and catastrophic if leaked. GitHub Actions natively
+        supports OIDC federation with AWS, GCP, and Azure, issuing short-lived tokens that
+        are scoped to the workflow run.
+
+        ## Remediation
+        Replace static credentials with OIDC-based authentication:
+        ```yaml
+        # AWS
+        - uses: aws-actions/configure-aws-credentials@v4
+          with:
+            role-to-assume: arn:aws:iam::123456789012:role/my-role
+            aws-region: us-east-1
+
+        # GCP
+        - uses: google-github-actions/auth@v2
+          with:
+            workload_identity_provider: projects/123/locations/global/...
+            service_account: my-sa@project.iam.gserviceaccount.com
+
+        # Azure
+        - uses: azure/login@v2
+          with:
+            client-id: ${{ secrets.AZURE_CLIENT_ID }}
+            tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+            subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        ```
+
+        ## References
+        - https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/about-security-hardening-with-openid-connect

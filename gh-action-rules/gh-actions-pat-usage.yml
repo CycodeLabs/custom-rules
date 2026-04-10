@@ -1,0 +1,38 @@
+rules:
+  - id: gh-actions-pat-usage
+    message: >
+      A Personal Access Token (PAT) appears to be used. PATs are long-lived, tied to a
+      single user, and grant broad access. Prefer GitHub App tokens or OIDC.
+    severity: WARNING
+    languages:
+      - yaml
+    paths:
+      include:
+        - ".github/**"
+        - "workflows/**"
+    pattern-regex: '(?i)\$\{\{\s*secrets\.(?:GH_PAT|GITHUB_PAT|PAT_TOKEN|PERSONAL_TOKEN|MY_PAT|PAT)[^}]*\}\}'
+    metadata:
+      policy: "Secrets — Personal Access Tokens"
+      help: |
+        ## Summary
+        Personal Access Tokens are long-lived credentials tied to an individual user account.
+        If leaked, they grant the same permissions as the user. They are harder to scope,
+        rotate, and audit compared to GitHub App installation tokens.
+
+        ## Remediation
+        Replace PATs with GitHub App installation tokens:
+        1. Create a GitHub App with the minimum required permissions.
+        2. Use `actions/create-github-app-token` to generate short-lived tokens per run.
+        ```yaml
+        - uses: actions/create-github-app-token@v1
+          id: app-token
+          with:
+            app-id: ${{ vars.APP_ID }}
+            private-key: ${{ secrets.APP_PRIVATE_KEY }}
+        - uses: some/action@v1
+          with:
+            token: ${{ steps.app-token.outputs.token }}
+        ```
+
+        ## References
+        - https://docs.github.com/en/apps/creating-github-apps/about-creating-github-apps

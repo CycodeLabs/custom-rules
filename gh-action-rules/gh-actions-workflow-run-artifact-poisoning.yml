@@ -1,0 +1,39 @@
+rules:
+  - id: gh-actions-workflow-run-artifact-poisoning
+    message: >
+      A workflow_run-triggered workflow downloads artifacts and either executes them or
+      uses secrets. Artifacts produced by an untrusted pull_request workflow can be
+      poisoned to compromise this privileged context.
+    severity: ERROR
+    languages:
+      - yaml
+    paths:
+      include:
+        - ".github/**"
+        - "workflows/**"
+    patterns:
+      - pattern-regex: '(?i)on\s*:\s*(?:.*\n)*\s*workflow_run\s*:'
+      - pattern-regex: '(?i)uses\s*:\s*actions/download-artifact@[^ \n]+'
+      - pattern-either:
+          - pattern-regex: '(?mis)^\s*-\s*run\s*:(?:[^\n]*|\s*\|[^\n]*\n(?:(?:\s{2,}.*\n))*?)(?:bash\b|sh\b|chmod\b|source\b|\.\s+|python\b|node\b|\.\/|docker\s+load|kubectl\s+apply)'
+          - pattern-regex: '\$\{\{\s*secrets\.'
+    metadata:
+      policy: "Artifacts — Poisoning via workflow_run"
+      help: |
+        ## Summary
+        The `workflow_run` trigger runs after another workflow completes, typically with
+        elevated privileges and secret access. If it downloads artifacts from an untrusted
+        `pull_request` workflow and executes them (or uses them alongside secrets), an
+        attacker can poison the artifacts to gain elevated access.
+
+        This is a well-documented attack pattern where a two-workflow setup creates an
+        indirect privilege escalation from pull_request to workflow_run context.
+
+        ## Remediation
+        - Verify artifact integrity (checksums, signatures) before any use.
+        - Do not execute downloaded artifact content directly.
+        - Use `actions/attest-build-provenance` in the producing workflow.
+        - Minimize secret access in `workflow_run` jobs.
+
+        ## References
+        - https://securitylab.github.com/research/github-actions-preventing-pwn-requests/

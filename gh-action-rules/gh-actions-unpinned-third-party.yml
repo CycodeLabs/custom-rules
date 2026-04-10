@@ -1,0 +1,29 @@
+rules:
+  - id: gh-actions-unpinned-third-party
+    message: >
+      Third-party action is not pinned to a full 40-character commit SHA. Tag and branch
+      references are mutable and can be hijacked upstream, risking supply-chain compromise.
+    severity: WARNING
+    languages:
+      - yaml
+    paths:
+      include:
+        - ".github/**"
+        - "workflows/**"
+    pattern-regex: '(?i)uses\s*:\s*(?!actions/|github/|\.\/)[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+@(?!(?:[0-9a-f]{40})\b)[^\s#]+'
+    metadata:
+      policy: "Supply Chain — Unpinned Actions"
+      help: |
+        ## Summary
+        Using a tag or branch for third-party actions allows the upstream maintainer (or an
+        attacker who compromises the repo) to silently change what code runs in your workflow.
+
+        ## Remediation
+        Pin to the full 40-character commit SHA and add a version comment:
+        ```yaml
+        uses: owner/repo@a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2 # v2.1.0
+        ```
+        Use tools like Dependabot or Renovate to keep SHA pins up to date.
+
+        ## References
+        - https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions#using-third-party-actions

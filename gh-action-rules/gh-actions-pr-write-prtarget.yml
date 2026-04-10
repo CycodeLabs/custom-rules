@@ -1,0 +1,31 @@
+rules:
+  - id: gh-actions-pr-write-prtarget
+    message: >
+      Workflow triggered by pull_request_target grants pull-requests: write permission.
+      This combination can allow PR approval or merge from automation triggered by
+      untrusted PRs.
+    severity: ERROR
+    languages:
+      - yaml
+    paths:
+      include:
+        - ".github/**"
+        - "workflows/**"
+    patterns:
+      - pattern-regex: '(?i)pull_request_target\s*:'
+      - pattern-regex: '(?i)pull-requests\s*:\s*write\b'
+    metadata:
+      policy: "Pull Request Target — Dangerous Permission Combo"
+      help: |
+        ## Summary
+        `pull-requests: write` in a `pull_request_target` workflow lets code triggered by
+        an untrusted PR approve, merge, or modify pull requests. This can be abused to
+        bypass branch protection rules that require reviews.
+
+        ## Remediation
+        - Use `pull-requests: read` or remove the permission entirely.
+        - Separate approval/merge logic from PR-triggered automation.
+        - Require human review for any PR state changes.
+
+        ## References
+        - https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions#potential-impact-of-a-compromised-runner

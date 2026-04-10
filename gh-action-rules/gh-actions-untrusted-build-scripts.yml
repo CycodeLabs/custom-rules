@@ -1,0 +1,34 @@
+rules:
+  - id: gh-actions-untrusted-build-scripts
+    message: >
+      Build tools (make, gradle, mvn, shell scripts) run after checking out untrusted PR
+      code in a pull_request_target workflow. Attacker-controlled Makefiles, build.gradle,
+      or pom.xml execute arbitrary commands with elevated privileges.
+    severity: ERROR
+    languages:
+      - yaml
+    paths:
+      include:
+        - ".github/**"
+        - "workflows/**"
+    patterns:
+      - pattern-regex: '(?i)pull_request_target\s*:'
+      - pattern-regex: '(?i)uses\s*:\s*actions/checkout@[^ \n]+'
+      - pattern-regex: '(?mis)^\s*-\s*run\s*:(?:[^\n]*|\s*\|[^\n]*\n(?:(?:\s{2,}.*\n))*?)(?:make\b|gradle\b|\.\/gradlew\b|mvn\b|\.\/mvnw\b|ant\b|sbt\b|bazel\b|cmake\b|\.\/build|\.\/scripts/|bash\s+\S+\.sh|sh\s+\S+\.sh)'
+    metadata:
+      policy: "Code Execution — Build Scripts in Privileged Context"
+      help: |
+        ## Summary
+        Build tools like `make`, `gradle`, `mvn`, and custom shell scripts execute code
+        defined in the checked-out source. In a `pull_request_target` workflow, an attacker's
+        PR can modify these files to run arbitrary commands with full secret access and a
+        write GITHUB_TOKEN.
+
+        ## Remediation
+        - Use `pull_request` trigger (read-only GITHUB_TOKEN, no fork secret access).
+        - Never check out PR head code in `pull_request_target`.
+        - If building PR code is required, do so in a sandboxed, unprivileged job and
+          pass only verified outputs downstream.
+
+        ## References
+        - https://securitylab.github.com/research/github-actions-preventing-pwn-requests/

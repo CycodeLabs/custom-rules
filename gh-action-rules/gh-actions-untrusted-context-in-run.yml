@@ -1,0 +1,48 @@
+rules:
+  - id: gh-actions-untrusted-context-in-run
+    message: >
+      User-controlled GitHub context expression is interpolated directly into a shell
+      run command. Expressions like github.event.pull_request.title, github.head_ref,
+      or github.event.comment.body can be set by attackers and enable command injection.
+    severity: ERROR
+    languages:
+      - yaml
+    paths:
+      include:
+        - ".github/**"
+        - "workflows/**"
+    pattern-either:
+      - pattern-regex: '(?m)^\s*-\s*run\s*:[^\n]*\$\{\{\s*github\.event\.'
+      - pattern-regex: '(?ms)^\s*-\s*run\s*:\s*\|[^\n]*\n(?:(?:\s{2,}.*\n))*?.*\$\{\{\s*github\.event\.'
+      - pattern-regex: '(?m)^\s*-\s*run\s*:[^\n]*\$\{\{\s*github\.head_ref\b'
+      - pattern-regex: '(?ms)^\s*-\s*run\s*:\s*\|[^\n]*\n(?:(?:\s{2,}.*\n))*?.*\$\{\{\s*github\.head_ref\b'
+    metadata:
+      policy: "Script Injection — Untrusted Context in Shell"
+      help: |
+        ## Summary
+        Interpolating user-controlled context values into shell commands enables command
+        injection. An attacker can craft a PR title, branch name, issue body, or commit
+        message containing shell metacharacters (e.g., `$(malicious command)` or
+        `` `malicious command` ``) that execute when the workflow runs.
+
+        Dangerous expressions include:
+        - `github.event.pull_request.title / .body / .head.ref / .head.label`
+        - `github.event.issue.title / .body`
+        - `github.event.comment.body`
+        - `github.event.review.body / review_comment.body`
+        - `github.event.discussion.title / .body`
+        - `github.event.head_commit.message / .author.email / .author.name`
+        - `github.event.commits.*.message`
+        - `github.event.pages.*.page_name`
+        - `github.head_ref`
+
+        ## Remediation
+        Pass untrusted values through environment variables:
+        ```yaml
+        - run: echo "Title is: $PR_TITLE"
+          env:
+            PR_TITLE: ${{ github.event.pull_request.title }}
+        ```
+
+        ## References
+        - https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions#understanding-the-risk-of-script-injections

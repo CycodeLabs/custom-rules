@@ -1,0 +1,34 @@
+rules:
+  - id: gh-actions-branch-protection-bypass
+    message: >
+      Workflow pushes directly to the repository via git push or a push action. CI-driven
+      pushes with the default GITHUB_TOKEN bypass required pull request reviews and
+      status checks.
+    severity: ERROR
+    languages:
+      - yaml
+    paths:
+      include:
+        - ".github/**"
+        - "workflows/**"
+    pattern-either:
+      - pattern-regex: '(?m)^\s*-\s*run\s*:[^\n]*\bgit\s+push\b'
+      - pattern-regex: '(?ms)^\s*-\s*run\s*:\s*\|[^\n]*\n(?:(?:\s{2,}.*\n))*?.*\bgit\s+push\b'
+      - pattern-regex: '(?i)uses\s*:\s*ad-m/github-push-action@[^ \n]+'
+      - pattern-regex: '(?i)uses\s*:\s*stefanzweifel/git-auto-commit-action@[^ \n]+'
+    metadata:
+      policy: "Miscellaneous — Branch Protection Bypass"
+      help: |
+        ## Summary
+        When a workflow pushes directly to a protected branch using the GITHUB_TOKEN or
+        a PAT, it can bypass required reviews, status checks, and other branch protection
+        rules. This undermines the security guarantees that branch protection provides.
+
+        ## Remediation
+        - Create commits via pull requests instead of direct pushes.
+        - Use a GitHub App token with minimal permissions instead of GITHUB_TOKEN.
+        - Enable "Include administrators" in branch protection rules.
+        - Restrict the GITHUB_TOKEN to `contents: read` where possible.
+
+        ## References
+        - https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-a-branch-protection-rule/about-protected-branches

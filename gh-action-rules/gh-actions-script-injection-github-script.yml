@@ -1,0 +1,42 @@
+rules:
+  - id: gh-actions-script-injection-github-script
+    message: >
+      User-controlled GitHub context expression is interpolated into an
+      actions/github-script block. This enables JavaScript code injection via PR titles,
+      issue bodies, commit messages, or other attacker-controlled fields.
+    severity: ERROR
+    languages:
+      - yaml
+    paths:
+      include:
+        - ".github/**"
+        - "workflows/**"
+    patterns:
+      - pattern-regex: '(?i)uses\s*:\s*actions/github-script@[^ \n]+'
+      - pattern-either:
+          - pattern-regex: '(?i)script\s*:[^\n]*\$\{\{\s*github\.event\.'
+          - pattern-regex: '(?is)script\s*:\s*\|[^\n]*\n(?:(?:\s{2,}.*\n))*?.*\$\{\{\s*github\.event\.'
+          - pattern-regex: '(?i)script\s*:[^\n]*\$\{\{\s*github\.head_ref\b'
+          - pattern-regex: '(?is)script\s*:\s*\|[^\n]*\n(?:(?:\s{2,}.*\n))*?.*\$\{\{\s*github\.head_ref\b'
+    metadata:
+      policy: "Script Injection — Untrusted Context in GitHub Script"
+      help: |
+        ## Summary
+        `actions/github-script` executes JavaScript in a Node.js context with access to
+        the GitHub API via an authenticated Octokit client. Interpolating user-controlled
+        values (PR title, issue body, commit message, branch name) into the `script:` block
+        enables JavaScript injection, allowing an attacker to execute arbitrary API calls
+        with the workflow's GITHUB_TOKEN permissions.
+
+        ## Remediation
+        Access context values through the `context` object instead of expression interpolation:
+        ```yaml
+        - uses: actions/github-script@v7
+          with:
+            script: |
+              const title = context.payload.pull_request.title;
+              console.log(`PR title: ${title}`);
+        ```
+
+        ## References
+        - https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions#understanding-the-risk-of-script-injections

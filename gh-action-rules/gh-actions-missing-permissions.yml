@@ -1,0 +1,33 @@
+rules:
+  - id: gh-actions-missing-permissions
+    message: >
+      Workflow does not declare a permissions key. Without explicit permissions, the
+      GITHUB_TOKEN inherits the repository or organization default, which is often
+      overly broad (write-all).
+    severity: WARNING
+    languages:
+      - yaml
+    paths:
+      include:
+        - ".github/**"
+        - "workflows/**"
+    patterns:
+      - pattern-regex: '(?m)^\s*on\s*:'
+      - pattern-not-regex: '(?i)\bpermissions\s*:'
+    metadata:
+      policy: "Permissions — Missing Declaration"
+      help: |
+        ## Summary
+        Omitting `permissions:` causes the GITHUB_TOKEN to inherit the repository or
+        organization default. Many organizations default to `write-all`, granting every
+        job full write access to contents, packages, pull requests, and more.
+
+        ## Remediation
+        Add an explicit top-level `permissions:` block with the minimum required scopes:
+        ```yaml
+        permissions:
+          contents: read
+        ```
+
+        ## References
+        - https://docs.github.com/en/actions/security-guides/automatic-token-authentication#modifying-the-permissions-for-the-github_token

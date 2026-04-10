@@ -1,0 +1,33 @@
+rules:
+  - id: gh-actions-dind-or-privileged
+    message: >
+      Job uses privileged containers or docker-in-docker (dind). Privileged mode
+      disables most container isolation, enabling container escape to the host.
+    severity: ERROR
+    languages:
+      - yaml
+    paths:
+      include:
+        - ".github/**"
+        - "workflows/**"
+    pattern-either:
+      - pattern-regex: '(?i)image\s*:\s*docker:dind\b'
+      - pattern-regex: '(?i)options\s*:\s*--privileged\b'
+      - pattern-regex: '(?i)options\s*:[^\n]*--privileged\b'
+    metadata:
+      policy: "Runner Security — Privileged Containers"
+      help: |
+        ## Summary
+        `--privileged` mode gives a container full access to the host's devices and
+        kernel capabilities, effectively disabling container isolation. `docker:dind`
+        (Docker-in-Docker) service containers typically require privileged mode and
+        create the same risk. A compromised build step can escape to the host.
+
+        ## Remediation
+        - Use Docker Buildx with rootless mode instead of dind.
+        - Use GitHub-hosted runners (no need for dind on most workflows).
+        - If Docker-in-Docker is required, consider rootless DinD (`docker:dind-rootless`).
+        - Use Kaniko or BuildKit for unprivileged image building.
+
+        ## References
+        - https://docs.docker.com/engine/security/#docker-daemon-attack-surface

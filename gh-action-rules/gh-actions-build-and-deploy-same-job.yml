@@ -1,0 +1,45 @@
+rules:
+  - id: gh-actions-build-and-deploy-same-job
+    message: >
+      A single job both builds and publishes/deploys artifacts. Separating build and
+      deploy into distinct jobs reduces blast radius if the build step is compromised.
+    severity: WARNING
+    languages:
+      - yaml
+    paths:
+      include:
+        - ".github/**"
+        - "workflows/**"
+    pattern-either:
+      - patterns:
+          - pattern-regex: '(?mis)^\s*-\s*run\s*:(?:[^\n]*|\s*\|[^\n]*\n(?:(?:\s{2,}.*\n))*?)(?:npm\s+(?:run\s+)?build|yarn\s+build|make\b|gradle\b|mvn\s+(?:package|compile|install)|go\s+build|cargo\s+build|docker\s+build)\b'
+          - pattern-regex: '(?mis)^\s*-\s*run\s*:(?:[^\n]*|\s*\|[^\n]*\n(?:(?:\s{2,}.*\n))*?)(?:npm\s+publish|yarn\s+publish|twine\s+upload|docker\s+push|helm\s+push|gh\s+release\s+create|cargo\s+publish)\b'
+      - patterns:
+          - pattern-regex: '(?mis)^\s*-\s*run\s*:(?:[^\n]*|\s*\|[^\n]*\n(?:(?:\s{2,}.*\n))*?)(?:npm\s+(?:run\s+)?build|yarn\s+build|make\b|gradle\b|mvn\s+(?:package|compile|install)|go\s+build|cargo\s+build|docker\s+build)\b'
+          - pattern-regex: '(?i)uses\s*:\s*(?:pypa/gh-action-pypi-publish|softprops/action-gh-release|docker/build-push-action)@'
+    metadata:
+      policy: "Build/Deploy — Insufficient Separation"
+      help: |
+        ## Summary
+        When build and publish run in the same job, a compromised build step (via a
+        malicious dependency, injected script, or poisoned cache) automatically gains
+        access to publish credentials. Separating build and deploy limits what a
+        compromised build can do.
+
+        ## Remediation
+        - Split into separate `build` and `deploy` jobs.
+        - Pass verified artifacts between jobs using `actions/upload-artifact` and `actions/download-artifact`.
+        - Grant publish credentials only to the deploy job.
+        ```yaml
+        jobs:
+          build:
+            runs-on: ubuntu-latest
+            steps: [...]  # build only
+          deploy:
+            needs: build
+            runs-on: ubuntu-latest
+            steps: [...]  # publish only
+        ```
+
+        ## References
+        - https://docs.github.com/en/actions/deployment/security-hardening-your-deployments/about-security-hardening-with-openid-connect

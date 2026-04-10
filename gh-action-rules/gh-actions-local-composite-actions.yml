@@ -1,0 +1,31 @@
+rules:
+  - id: gh-actions-local-composite-actions
+    message: >
+      Workflow uses local composite actions from .github/actions/. Local actions are
+      executed with the same trust level as the workflow and may bypass the review
+      scrutiny applied to third-party actions.
+    severity: WARNING
+    languages:
+      - yaml
+    paths:
+      include:
+        - ".github/**"
+        - "workflows/**"
+    pattern-regex: '(?i)uses\s*:\s*\.\/\.github\/actions\/'
+    metadata:
+      policy: "Miscellaneous — Local Composite Actions"
+      help: |
+        ## Summary
+        Local composite actions (referenced as `uses: ./.github/actions/...`) run with the
+        same permissions as the workflow. In `pull_request_target` workflows, an attacker
+        can modify these actions via a PR to execute arbitrary code in a privileged context.
+        Even in normal workflows, local actions may not receive the same security review
+        as third-party actions that are SHA-pinned.
+
+        ## Remediation
+        - Apply the same code review standards to `.github/actions/` as to application code.
+        - In `pull_request_target` workflows, never use local actions from the PR head.
+        - Consider extracting shared actions into a separate, protected repository.
+
+        ## References
+        - https://docs.github.com/en/actions/creating-actions/creating-a-composite-action

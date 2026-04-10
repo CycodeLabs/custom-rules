@@ -1,0 +1,33 @@
+rules:
+  - id: gh-actions-self-hosted-on-pr
+    message: >
+      Untrusted pull requests run on self-hosted runners. Self-hosted runners are
+      persistent and may have access to internal networks, stored credentials, or
+      shared resources that outlive the job.
+    severity: WARNING
+    languages:
+      - yaml
+    paths:
+      include:
+        - ".github/**"
+        - "workflows/**"
+    patterns:
+      - pattern-regex: '(?i)on\s*:\s*(?:\[?\s*pull_request\b|(?:.*\n)*\s*pull_request\s*:)'
+      - pattern-regex: '(?i)runs-on\s*:\s*self-hosted\b'
+    metadata:
+      policy: "Runner Security — Self-Hosted on PRs"
+      help: |
+        ## Summary
+        Self-hosted runners are persistent machines that may retain state between jobs:
+        file system contents, running processes, environment variables, and network access.
+        Running untrusted PR code on self-hosted runners enables persistence attacks,
+        lateral movement to internal networks, and credential theft from the host.
+
+        ## Remediation
+        - Use GitHub-hosted runners for untrusted PR workflows (ephemeral, isolated).
+        - If self-hosted runners are required, use ephemeral/one-shot runners.
+        - Harden self-hosted runners with container isolation (e.g., `actions-runner-controller`
+          with ephemeral pods).
+
+        ## References
+        - https://docs.github.com/en/actions/hosting-your-own-runners/managing-self-hosted-runners/about-self-hosted-runners#self-hosted-runner-security

@@ -1,0 +1,35 @@
+rules:
+  - id: gh-actions-unpinned-official-actions
+    message: >
+      Official GitHub action (actions/* or github/*) is not pinned to a full commit SHA.
+      Even first-party actions should be pinned to an immutable reference in high-security
+      environments to prevent supply-chain compromise via tag mutation.
+    severity: WARNING
+    languages:
+      - yaml
+    paths:
+      include:
+        - ".github/**"
+        - "workflows/**"
+    pattern-either:
+      - pattern-regex: '(?i)uses\s*:\s*actions/[A-Za-z0-9_.-]+@(?!(?:[0-9a-f]{40})\b)[^\s#]+'
+      - pattern-regex: '(?i)uses\s*:\s*github/[A-Za-z0-9_.-]+@(?!(?:[0-9a-f]{40})\b)[^\s#]+'
+    metadata:
+      policy: "Supply Chain — Unpinned Actions"
+      help: |
+        ## Summary
+        Even official `actions/*` and `github/*` actions can be compromised through tag
+        hijacking or account takeover. Pinning to a full 40-character commit SHA ensures
+        immutable, reproducible builds.
+
+        ## Remediation
+        Replace tag/branch references with the corresponding commit SHA:
+        ```yaml
+        # Before
+        uses: actions/checkout@v4
+        # After
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+        ```
+
+        ## References
+        - https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions#using-third-party-actions

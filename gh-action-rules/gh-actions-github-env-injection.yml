@@ -1,0 +1,37 @@
+rules:
+  - id: gh-actions-github-env-injection
+    message: >
+      Untrusted data is written to $GITHUB_ENV or $GITHUB_OUTPUT. Attackers can inject
+      arbitrary environment variables or outputs that affect subsequent steps.
+    severity: WARNING
+    languages:
+      - yaml
+    paths:
+      include:
+        - ".github/**"
+        - "workflows/**"
+    patterns:
+      - pattern-regex: '(?s)^\s*-\s*run\s*:(?:[^\n]*?>>\s*\$GITHUB_(?:ENV|OUTPUT)\b|\s*\|[^\n]*\n[\s\S]*?>>\s*\$GITHUB_(?:ENV|OUTPUT)\b)'
+      - pattern-regex: '\$\{\{\s*(?:github\.event\.|github\.head_ref|steps\.[^}]+\.outputs|inputs\.)'
+    metadata:
+      policy: "Script Injection — Environment/Output Injection"
+      help: |
+        ## Summary
+        Writing unsanitized values to `$GITHUB_ENV` or `$GITHUB_OUTPUT` persists
+        attacker-controlled data across steps. An attacker can inject new environment
+        variables (including `PATH` or `LD_PRELOAD`) or corrupt step outputs by
+        embedding newlines and the `<<DELIMITER` heredoc syntax.
+
+        ## Remediation
+        - Sanitize values before writing to `$GITHUB_ENV` or `$GITHUB_OUTPUT`.
+        - Use the heredoc syntax with a random delimiter to prevent injection:
+          ```yaml
+          - run: |
+              EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+              echo "value<<$EOF" >> "$GITHUB_OUTPUT"
+              echo "$UNTRUSTED_VALUE" >> "$GITHUB_OUTPUT"
+              echo "$EOF" >> "$GITHUB_OUTPUT"
+          ```
+
+        ## References
+        - https://docs.github.com/en/actions/security-guides/security-hardening-for-github-actions#understanding-the-risk-of-script-injections

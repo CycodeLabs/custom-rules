@@ -1,0 +1,31 @@
+rules:
+  - id: gh-actions-permissions-write-all
+    message: >
+      Workflow or job uses 'permissions: write-all', granting maximum GITHUB_TOKEN scope.
+      This violates the principle of least privilege and maximizes blast radius.
+    severity: ERROR
+    languages:
+      - yaml
+    paths:
+      include:
+        - ".github/**"
+        - "workflows/**"
+    pattern-regex: '(?i)permissions\s*:\s*write-all'
+    metadata:
+      policy: "Permissions — Maximum Scope"
+      help: |
+        ## Summary
+        `permissions: write-all` grants the GITHUB_TOKEN every write scope: contents,
+        packages, deployments, pull-requests, issues, actions, and more. If any step is
+        compromised, the attacker has full write access to the repository.
+
+        ## Remediation
+        Replace with the minimum required permissions:
+        ```yaml
+        permissions:
+          contents: read
+          pull-requests: write  # only if needed
+        ```
+
+        ## References
+        - https://docs.github.com/en/actions/security-guides/automatic-token-authentication#permissions-for-the-github_token

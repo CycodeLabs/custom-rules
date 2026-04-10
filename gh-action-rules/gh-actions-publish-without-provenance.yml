@@ -1,0 +1,40 @@
+rules:
+  - id: gh-actions-publish-without-provenance
+    message: >
+      Artifacts are published (docker push, npm publish, twine upload, etc.) without a
+      provenance attestation or signing step. Unsigned artifacts cannot be verified by
+      consumers and are vulnerable to supply-chain tampering.
+    severity: WARNING
+    languages:
+      - yaml
+    paths:
+      include:
+        - ".github/**"
+        - "workflows/**"
+    patterns:
+      - pattern-either:
+          - pattern-regex: '(?mis)^\s*-\s*run\s*:(?:[^\n]*|\s*\|[^\n]*\n(?:(?:\s{2,}.*\n))*?)(?:docker\s+push|npm\s+publish|twine\s+upload|cargo\s+publish|helm\s+push|yarn\s+publish)\b'
+          - pattern-regex: '(?i)uses\s*:\s*docker/build-push-action@[^ \n]+[\s\S]*?push\s*:\s*true'
+          - pattern-regex: '(?i)uses\s*:\s*pypa/gh-action-pypi-publish@[^ \n]+'
+      - pattern-not-regex: '(?i)(?:cosign\s+sign|slsa-(?:framework|verifier|generator)|actions/attest-build-provenance|sigstore|notation\s+sign)'
+    metadata:
+      policy: "Artifacts — Missing Provenance/Signing"
+      help: |
+        ## Summary
+        Published artifacts (container images, npm packages, PyPI packages) without
+        provenance attestations or cryptographic signatures cannot be verified by consumers.
+        Attackers who compromise a registry or build pipeline can substitute malicious
+        artifacts undetected.
+
+        ## Remediation
+        - Sign container images with `cosign` / Sigstore after pushing.
+        - Generate SLSA provenance with `slsa-framework/slsa-github-generator`.
+        - Use `actions/attest-build-provenance` for GitHub artifact attestations.
+        ```yaml
+        - uses: sigstore/cosign-installer@v3
+        - run: cosign sign --yes ${{ env.IMAGE }}
+        ```
+
+        ## References
+        - https://docs.github.com/en/actions/security-guides/using-artifact-attestations-to-establish-provenance-for-builds
+        - https://slsa.dev/
