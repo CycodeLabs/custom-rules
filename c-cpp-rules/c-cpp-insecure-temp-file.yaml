@@ -1,0 +1,48 @@
+rules:
+  - id: c-cpp-insecure-temp-file
+    languages: [c, cpp]
+    paths:
+      include:
+        - "*.c"
+        - "*.h"
+        - "*.cpp"
+        - "*.cc"
+        - "*.cxx"
+        - "*.c++"
+        - "*.hpp"
+        - "*.hh"
+        - "*.hxx"
+        - "*.inc"
+    severity: WARNING
+    message: >-
+      Use of a race-prone temporary-file function (`mktemp`, `tmpnam`, `tempnam`). These return
+      a name but do not atomically create the file, so an attacker can predict/win the race and
+      create or symlink the path between the name being chosen and the program opening it
+      (TOCTOU), leading to file overwrite or privilege escalation. Remediation: use `mkstemp`
+      (files) or `mkdtemp` (directories), which create the object atomically with safe
+      permissions, and create temp files in a directory not writable by other users.
+    metadata:
+      vulnerability_class: Insecure Temporary File
+      help: |
+        ## Summary
+        Use of a race-prone temporary-file function (`mktemp`, `tmpnam`, `tempnam`). These return a name but do not atomically create the file, so an attacker can predict/win the race and create or symlink the path between the name being chosen and the program opening it (TOCTOU), leading to file overwrite or privilege escalation. Remediation: use `mkstemp` (files) or `mkdtemp` (directories), which create the object atomically with safe permissions, and create temp files in a directory not writable by other users.
+
+        ## Remediation
+        Use mkstemp()/mkdtemp() instead of mktemp/tmpnam/tempnam.
+      category: security
+      cwe:
+        - "CWE-377: Insecure Temporary File"
+        - "CWE-367: Time-of-check Time-of-use (TOCTOU) Race Condition"
+      references:
+        - https://cwe.mitre.org/data/definitions/377.html
+      confidence: HIGH
+      likelihood: LOW
+      impact: MEDIUM
+      subcategory: [vuln]
+      technology: [c, cpp]
+      remediation: >-
+        Use mkstemp()/mkdtemp() instead of mktemp/tmpnam/tempnam.
+    pattern-either:
+      - pattern: mktemp(...)
+      - pattern: tmpnam(...)
+      - pattern: tempnam(...)

@@ -1,0 +1,68 @@
+rules:
+  - id: c-cpp-uncontrolled-format-string
+    languages: [c, cpp]
+    paths:
+      include:
+        - "*.c"
+        - "*.h"
+        - "*.cpp"
+        - "*.cc"
+        - "*.cxx"
+        - "*.c++"
+        - "*.hpp"
+        - "*.hh"
+        - "*.hxx"
+        - "*.inc"
+    severity: ERROR
+    message: >-
+      A printf-family function is called with a non-literal format string. If any part of that
+      format string is attacker-controlled, the attacker can leak stack/memory with `%x`/`%s`,
+      crash the process, or write memory with `%n`. Remediation: always pass a constant format
+      string and put untrusted data in the variadic arguments, e.g. `printf("%s", user)` rather
+      than `printf(user)`.
+    metadata:
+      vulnerability_class: Use of Externally-Controlled Format String
+      help: |
+        ## Summary
+        A printf-family function is called with a non-literal format string. If any part of that format string is attacker-controlled, the attacker can leak stack/memory with `%x`/`%s`, crash the process, or write memory with `%n`. Remediation: always pass a constant format string and put untrusted data in the variadic arguments, e.g. `printf("%s", user)` rather than `printf(user)`.
+
+        ## Remediation
+        Use a constant format string; pass untrusted data as arguments (printf("%s", x)).
+      category: security
+      cwe:
+        - "CWE-134: Use of Externally-Controlled Format String"
+      owasp:
+        - "A03:2021 - Injection"
+      references:
+        - https://cwe.mitre.org/data/definitions/134.html
+      confidence: MEDIUM
+      likelihood: MEDIUM
+      impact: CRITICAL
+      subcategory: [vuln]
+      technology: [c, cpp]
+      remediation: >-
+        Use a constant format string; pass untrusted data as arguments (printf("%s", x)).
+    patterns:
+      - pattern-either:
+          - pattern: printf($FMT, ...)
+          - pattern: fprintf($STREAM, $FMT, ...)
+          - pattern: sprintf($DST, $FMT, ...)
+          - pattern: snprintf($DST, $N, $FMT, ...)
+          - pattern: syslog($PRI, $FMT, ...)
+          - pattern: vprintf($FMT, ...)
+          - pattern: vfprintf($STREAM, $FMT, ...)
+      - metavariable-pattern:
+          metavariable: $FMT
+          patterns:
+            - pattern-not: '"..."'
+      # require a lowercase letter in the format arg: excludes ALL-CAPS format MACROS
+      # (e.g. STATUS_LOG_GMT_FORMAT) that expand to constant strings, not attacker input
+      - metavariable-regex:
+          metavariable: $FMT
+          regex: '.*[a-z]'
+      # a format built from string-literal concatenation (e.g. `"Key: " PTR_FORMAT "\n"`) is a
+      # compile-time-constant format with macro specifiers, not attacker-controlled; if the
+      # format text contains a double-quote, a literal is present, so it is not uncontrolled.
+      - metavariable-regex:
+          metavariable: $FMT
+          regex: '^[^"]*$'

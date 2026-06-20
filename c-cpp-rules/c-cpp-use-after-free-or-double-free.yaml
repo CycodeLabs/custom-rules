@@ -1,0 +1,89 @@
+rules:
+  - id: c-cpp-use-after-free-or-double-free
+    languages: [c, cpp]
+    paths:
+      include:
+        - "*.c"
+        - "*.h"
+        - "*.cpp"
+        - "*.cc"
+        - "*.cxx"
+        - "*.c++"
+        - "*.hpp"
+        - "*.hh"
+        - "*.hxx"
+        - "*.inc"
+    severity: WARNING
+    message: >-
+      A pointer is used (dereferenced) or freed again after it was already passed to free(),
+      with no reassignment in between. Use-after-free and double-free corrupt the heap allocator
+      and are frequently exploitable for code execution. Remediation: after freeing, set the
+      pointer to NULL (and gate frees on non-NULL), do not read or write through it, and never
+      free the same pointer twice.
+    metadata:
+      vulnerability_class: Use After Free
+      help: |
+        ## Summary
+        A pointer is used (dereferenced) or freed again after it was already passed to free(), with no reassignment in between. Use-after-free and double-free corrupt the heap allocator and are frequently exploitable for code execution. Remediation: after freeing, set the pointer to NULL (and gate frees on non-NULL), do not read or write through it, and never free the same pointer twice.
+
+        ## Remediation
+        Set the pointer to NULL after free; never deref or re-free it without reassigning.
+      category: security
+      cwe:
+        - "CWE-416: Use After Free"
+        - "CWE-415: Double Free"
+      owasp:
+        - "A06:2021 - Vulnerable and Outdated Components"
+      references:
+        - https://cwe.mitre.org/data/definitions/416.html
+      confidence: LOW
+      likelihood: MEDIUM
+      impact: HIGH
+      subcategory: [vuln]
+      technology: [c, cpp]
+      remediation: >-
+        Set the pointer to NULL after free; never deref or re-free it without reassigning.
+    pattern-either:
+      # double free of the same pointer with no reassignment between
+      - patterns:
+          - pattern: |
+              $FREE($P);
+              ...
+              $FREE($P);
+          - metavariable-regex:
+              metavariable: $FREE
+              regex: (?i)^([a-z0-9]+_)?free$
+          - pattern-not: |
+              $FREE($P);
+              ...
+              $P = $NEW;
+              ...
+              $FREE($P);
+          # a free taking a pointer-to-pointer (&x or (T**)&x) is the nulling-free convention,
+          # which clears the pointer -> re-calling it is safe. Only value-passed free is a bug,
+          # so require the freed expression to contain no address-of (`&`).
+          - metavariable-regex:
+              metavariable: $P
+              regex: ^[^&]*$
+      # dereference of a freed pointer with no reassignment between
+      - patterns:
+          - pattern-either:
+              - pattern: |
+                  $FREE($P);
+                  ...
+                  $X = $P->$M;
+              - pattern: |
+                  $FREE($P);
+                  ...
+                  $P->$M = $X;
+              - pattern: |
+                  $FREE($P);
+                  ...
+                  return $P->$M;
+          - metavariable-regex:
+              metavariable: $FREE
+              regex: (?i)^([a-z0-9]+_)?free$
+          - pattern-not: |
+              $FREE($P);
+              ...
+              $P = $NEW;

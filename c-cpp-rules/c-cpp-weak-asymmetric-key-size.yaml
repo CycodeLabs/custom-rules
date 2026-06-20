@@ -1,0 +1,78 @@
+rules:
+  - id: c-cpp-weak-asymmetric-key-size
+    languages: [c, cpp]
+    paths:
+      include:
+        - "*.c"
+        - "*.h"
+        - "*.cpp"
+        - "*.cc"
+        - "*.cxx"
+        - "*.c++"
+        - "*.hpp"
+        - "*.hh"
+        - "*.hxx"
+        - "*.inc"
+    severity: WARNING
+    message: >-
+      A weak asymmetric key size is generated or accepted. RSA/DSA/DH keys below 2048 bits (and
+      classic MODP groups 1/2 = 768/1024-bit) are considered broken or near-broken and must not be
+      used for new keys or accepted in negotiation. This rule flags key-generation calls given a
+      sub-2048 bit length, and length guards whose floor admits values below 2048. Remediation:
+      require >= 2048-bit RSA/DSA/DH (or an equivalent-strength elliptic curve, e.g. P-256+), both
+      when generating keys and when accepting peer parameters.
+    metadata:
+      vulnerability_class: Inadequate Encryption Strength
+      help: |
+        ## Summary
+        A weak asymmetric key size is generated or accepted. RSA/DSA/DH keys below 2048 bits (and classic MODP groups 1/2 = 768/1024-bit) are considered broken or near-broken and must not be used for new keys or accepted in negotiation. This rule flags key-generation calls given a sub-2048 bit length, and length guards whose floor admits values below 2048. Remediation: require >= 2048-bit RSA/DSA/DH (or an equivalent-strength elliptic curve, e.g. P-256+), both when generating keys and when accepting peer parameters.
+
+        ## Remediation
+        Require >= 2048-bit RSA/DSA/DH or an equivalent EC curve, on both generation and acceptance.
+      category: security
+      cwe:
+        - "CWE-326: Inadequate Encryption Strength"
+        - "CWE-327: Use of a Broken or Risky Cryptographic Algorithm"
+      owasp:
+        - "A02:2021 - Cryptographic Failures"
+      references:
+        - https://cwe.mitre.org/data/definitions/326.html
+      confidence: LOW
+      likelihood: MEDIUM
+      impact: HIGH
+      subcategory: [vuln]
+      technology: [c, cpp]
+      remediation: >-
+        Require >= 2048-bit RSA/DSA/DH or an equivalent EC curve, on both generation and acceptance.
+    pattern-either:
+      # key generation called with a sub-2048 bit length literal
+      - patterns:
+          - pattern-either:
+              - pattern: $GEN(..., $BITS)
+              - pattern: $GEN(..., $BITS, ...)
+          - metavariable-regex:
+              metavariable: $GEN
+              regex: (?i).*(generate.*key|gen.*key|keygen|makekey|generatepq|generate_pq)
+          - metavariable-comparison:
+              metavariable: $BITS
+              comparison: $BITS >= 512 and $BITS < 2048
+      # a length guard whose floor admits sub-2048 keys
+      - patterns:
+          - pattern-either:
+              - pattern: if ($KS < $LIT) { ... }
+              - pattern: if ($LIT > $KS) { ... }
+          - metavariable-regex:
+              metavariable: $KS
+              regex: (?i).*(keysize|key_size|keylen|key_len|keybits|key_bits|modulussize|bitlen)
+          - metavariable-comparison:
+              metavariable: $LIT
+              comparison: $LIT >= 512 and $LIT < 2048
+      # reference to a classic weak finite-field DH/MODP group (IKE/Oakley group 1 = 768-bit,
+      # group 2 = 1024-bit; standardized IANA names). Appearing in a group table = enabled.
+      - pattern-either:
+          - pattern: OAKLEY_GROUP_MODP768
+          - pattern: OAKLEY_GROUP_MODP1024
+          - pattern: MODP_768
+          - pattern: MODP_1024
+          - pattern: MODP768
+          - pattern: MODP1024

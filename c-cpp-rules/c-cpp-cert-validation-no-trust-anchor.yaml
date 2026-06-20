@@ -1,0 +1,54 @@
+rules:
+  - id: c-cpp-cert-validation-no-trust-anchor
+    languages: [c, cpp]
+    paths:
+      include:
+        - "*.c"
+        - "*.h"
+        - "*.cpp"
+        - "*.cc"
+        - "*.cxx"
+        - "*.c++"
+        - "*.hpp"
+        - "*.hh"
+        - "*.hxx"
+        - "*.inc"
+    severity: WARNING
+    message: >-
+      A certificate-chain validation config has its trust-store / trust-anchor field set to NULL
+      (or left NULL). Validating a chain with no trust anchor only checks internal chain
+      consistency; a self-signed or attacker-supplied certificate then "validates" successfully,
+      and any public key extracted from it is trusted. This is a certificate-validation bypass
+      (and, if the validity-time field is also NULL, expired certificates are accepted too).
+      Remediation: always validate against a configured trust store / pinned anchor, and pass the
+      current time so expiry is enforced.
+    metadata:
+      vulnerability_class: Improper Certificate Validation
+      help: |
+        ## Summary
+        A certificate-chain validation config has its trust-store / trust-anchor field set to NULL (or left NULL). Validating a chain with no trust anchor only checks internal chain consistency; a self-signed or attacker-supplied certificate then "validates" successfully, and any public key extracted from it is trusted. This is a certificate-validation bypass (and, if the validity-time field is also NULL, expired certificates are accepted too). Remediation: always validate against a configured trust store / pinned anchor, and pass the current time so expiry is enforced.
+
+        ## Remediation
+        Validate against a configured trust store/anchor; never validate a chain with a NULL store.
+      category: security
+      cwe:
+        - "CWE-295: Improper Certificate Validation"
+        - "CWE-296: Improper Following of a Certificate's Chain of Trust"
+      owasp:
+        - "A07:2021 - Identification and Authentication Failures"
+      references:
+        - https://cwe.mitre.org/data/definitions/295.html
+      confidence: LOW
+      likelihood: MEDIUM
+      impact: CRITICAL
+      subcategory: [vuln]
+      technology: [c, cpp]
+      remediation: >-
+        Validate against a configured trust store/anchor; never validate a chain with a NULL store.
+    patterns:
+      - pattern-either:
+          - pattern: $CFG.$STORE = NULL;
+          - pattern: $CFG->$STORE = NULL;
+      - metavariable-regex:
+          metavariable: $STORE
+          regex: (?i).*(certstore|truststore|trustanchor|castore|ca_store|trust_store|pcertstore)

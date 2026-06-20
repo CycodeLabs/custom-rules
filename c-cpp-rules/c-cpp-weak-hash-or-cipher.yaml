@@ -1,0 +1,76 @@
+rules:
+  - id: c-cpp-weak-hash-or-cipher
+    languages: [c, cpp]
+    paths:
+      include:
+        - "*.c"
+        - "*.h"
+        - "*.cpp"
+        - "*.cc"
+        - "*.cxx"
+        - "*.c++"
+        - "*.hpp"
+        - "*.hh"
+        - "*.hxx"
+        - "*.inc"
+    severity: WARNING
+    message: >-
+      Use of a cryptographically broken or obsolete primitive (MD4/MD5/SHA-1 hashing, or
+      DES/3DES-single/RC2/RC4 and ECB-mode ciphers). These are vulnerable to collisions,
+      practical key recovery, or reveal plaintext structure (ECB), and must not be used to
+      protect data, keys, signatures, or integrity. Remediation: use SHA-256/SHA-3 (or HMAC-
+      SHA256) for hashing/integrity and AES-GCM/AES-CTR (or ChaCha20-Poly1305) with a unique
+      IV/nonce for encryption. If a legacy algorithm is required for interop, isolate it and
+      do not use it for security decisions.
+    metadata:
+      vulnerability_class: Use of a Broken or Risky Cryptographic Algorithm
+      help: |
+        ## Summary
+        Use of a cryptographically broken or obsolete primitive (MD4/MD5/SHA-1 hashing, or DES/3DES-single/RC2/RC4 and ECB-mode ciphers). These are vulnerable to collisions, practical key recovery, or reveal plaintext structure (ECB), and must not be used to protect data, keys, signatures, or integrity. Remediation: use SHA-256/SHA-3 (or HMAC- SHA256) for hashing/integrity and AES-GCM/AES-CTR (or ChaCha20-Poly1305) with a unique IV/nonce for encryption. If a legacy algorithm is required for interop, isolate it and do not use it for security decisions.
+
+        ## Remediation
+        Use SHA-256/HMAC-SHA256 and AES-GCM/CTR with unique nonces; retire MD5/SHA1/DES/RC4/ECB.
+      category: security
+      cwe:
+        - "CWE-327: Use of a Broken or Risky Cryptographic Algorithm"
+        - "CWE-328: Use of Weak Hash"
+      owasp:
+        - "A02:2021 - Cryptographic Failures"
+      references:
+        - https://cwe.mitre.org/data/definitions/327.html
+      confidence: LOW
+      likelihood: MEDIUM
+      impact: MEDIUM
+      subcategory: [audit]
+      technology: [c, cpp]
+      remediation: >-
+        Use SHA-256/HMAC-SHA256 and AES-GCM/CTR with unique nonces; retire MD5/SHA1/DES/RC4/ECB.
+    pattern-either:
+      - patterns:
+          - pattern: $F(...)
+          # match the public API (one-shot, or init/update/final/complete), NOT the internal
+          # `*_transform` block-compression kernel, which is an implementation detail present in
+          # every hash library and is never an API-level choice to use weak crypto.
+          - metavariable-regex:
+              metavariable: $F
+              regex: (?i)^(md4|md5|sha1)(_(init|update|final|complete|completedigest))?$
+      - patterns:
+          - pattern: $F(...)
+          - metavariable-regex:
+              metavariable: $F
+              regex: (?i)^evp_(md4|md5|sha1)$
+      - patterns:
+          - pattern: $F(...)
+          - metavariable-regex:
+              metavariable: $F
+              regex: (?i)^(rc4|rc4_set_key|des_set_key|des_ecb_encrypt|des_ncbc_encrypt)$
+      - patterns:
+          - pattern: $F(...)
+          - metavariable-regex:
+              metavariable: $F
+              regex: (?i)^evp_(rc4|rc2_cbc|rc2_ecb|des_ecb|des_cbc|desx_cbc|rc4_40|rc2_40_cbc)$
+      - patterns:
+          - pattern: $F(...)
+          - metavariable-regex:
+              metavariable: $F
+              regex: (?i)^evp_.*_ecb$

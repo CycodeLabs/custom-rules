@@ -1,0 +1,108 @@
+rules:
+  - id: c-cpp-memcpy-size-underflow-dataflow
+    languages: [c, cpp]
+    paths:
+      include:
+        - "*.c"
+        - "*.h"
+        - "*.cpp"
+        - "*.cc"
+        - "*.cxx"
+        - "*.c++"
+        - "*.hpp"
+        - "*.hh"
+        - "*.hxx"
+        - "*.inc"
+    severity: WARNING
+    message: >-
+      A length is decremented (`len -= n` or `x = len - n`) and later used as a memory-copy size.
+      If that length is attacker-influenced and not proven to be at least the amount subtracted, the
+      subtraction underflows (wraps to a very large unsigned value) and drives an oversized copy,
+      an out-of-bounds write. This two-step pattern spans multiple statements, so it is not visible
+      to a single-expression check. Remediation: validate that the length is large enough before
+      subtracting, and bound the copy size to the destination buffer's capacity.
+    mode: taint
+    options:
+      symbolic_propagation: true
+    metadata:
+      vulnerability_class: Integer Underflow to Buffer Overflow
+      help: |
+        ## Summary
+        A length is decremented (`len -= n` or `x = len - n`) and later used as a memory-copy size. If that length is attacker-influenced and not proven to be at least the amount subtracted, the subtraction underflows (wraps to a very large unsigned value) and drives an oversized copy, an out-of-bounds write. This two-step pattern spans multiple statements, so it is not visible to a single-expression check. Remediation: validate that the length is large enough before subtracting, and bound the copy size to the destination buffer's capacity.
+
+        ## Remediation
+        Add a dominating `len >= sub` guard before the subtraction; clamp the copy size to the destination buffer length.
+      category: security
+      cwe:
+        - "CWE-191: Integer Underflow (Wrap or Wraparound)"
+        - "CWE-787: Out-of-bounds Write"
+      references:
+        - https://cwe.mitre.org/data/definitions/191.html
+      confidence: LOW
+      likelihood: LOW
+      impact: HIGH
+      subcategory: [audit]
+      technology: [c, cpp]
+      remediation: >-
+        Add a dominating `len >= sub` guard before the subtraction; clamp the copy size to the
+        destination buffer length.
+    pattern-sources:
+      # assignment-form subtraction (`copyLen = a - b`) where the MINUEND is a runtime value.
+      # Requiring the minuend to contain a lowercase letter excludes ALL-CAPS block-size macros
+      # (`numToCopy = AES_BLOCK_SIZE - index`); those are compile-time-bounded hash/cipher
+      # buffering, while still flagging wire-length mis-bounds like
+      # `copyLen = pCtx->recvMsgSize - recvMsgOffset` (MQTT recv).
+      - patterns:
+          - pattern: $L = $X - $K
+          # the minuend must look like an attacker/received length (the value that can be too
+          # small), not an internal block-size/position/pointer; this is what separates a real
+          # wire-length underflow (`copyLen = recvMsgSize - offset`) from safe hash/loop accounting
+          # (`bytesNeeded = rate - pos`, `n = size - i`).
+          - metavariable-regex:
+              metavariable: $X
+              regex: (?i).*(recv|content|payload|packet|pkt|msg|frame|record|body|fragment|remain|avail|datalen|inlen|buflen|reqlen|resplen|totallen|declared)
+      # compound-decrement header strip (`len -= 9`). Discriminators that keep this off safe
+      # hash/stream block-accounting: (1) the decremented var is length-named; (2) the subtrahend
+      # is a CONSTANT header/field size (numeric or ALL-CAPS macro); safe streaming subtracts a
+      # *variable* amount actually consumed (`dataLen -= numToCopy`), which is excluded here; and
+      # (3) pattern-not-inside a loop/if whose condition itself lower-bounds the SAME variable by a
+      # constant (`while (BLOCKSIZE <= dataLen) dataLen -= BLOCKSIZE;`); that is the dominating
+      # guard that makes block-accounting safe and that distinguishes it from an unguarded header
+      # strip (`numBytesToWrite -= 9`, RADIUS-RAO `dataLength -= FIELD_LEN`). The taint must still
+      # reach a copy size, so accounting that never copies by the decremented value never matches.
+      - patterns:
+          - pattern: $L -= $K
+          - metavariable-regex:
+              metavariable: $L
+              regex: (?i).*(len|size|count|bytes|remain|avail|left|num)
+          - metavariable-regex:
+              metavariable: $K
+              regex: ^([0-9]+|0[xX][0-9a-fA-F]+|[A-Z_][A-Z0-9_]+)$
+          - pattern-not-inside: 'while (<... $L >= $K2 ...>) { ... }'
+          - pattern-not-inside: 'while (<... $K2 <= $L ...>) { ... }'
+          - pattern-not-inside: 'while (<... $L > $K2 ...>) { ... }'
+          - pattern-not-inside: 'while (<... $K2 < $L ...>) { ... }'
+          - pattern-not-inside: 'for (...; <... $L >= $K2 ...>; ...) { ... }'
+          - pattern-not-inside: 'for (...; <... $K2 <= $L ...>; ...) { ... }'
+          - pattern-not-inside: 'for (...; <... $L > $K2 ...>; ...) { ... }'
+          - pattern-not-inside: 'for (...; <... $K2 < $L ...>; ...) { ... }'
+          - pattern-not-inside: 'if (<... $L >= $K2 ...>) { ... }'
+          - pattern-not-inside: 'if (<... $K2 <= $L ...>) { ... }'
+          - pattern-not-inside: 'if (<... $L > $K2 ...>) { ... }'
+          - pattern-not-inside: 'if (<... $K2 < $L ...>) { ... }'
+    pattern-sanitizers:
+      # a length clamped to a capacity (min) can no longer underflow into the copy -> not tainted
+      - pattern: $L = MIN(...)
+      - pattern: $L = DIGI_MIN(...)
+      - pattern: $L = MOC_MIN(...)
+      - pattern: '$L = $A < $B ? $A : $B'
+      - pattern: '$L = $A <= $B ? $A : $B'
+      - pattern: '$L = $A > $B ? $B : $A'
+      - pattern: '$L = $A >= $B ? $B : $A'
+    pattern-sinks:
+      - patterns:
+          - pattern: $F($DST, $SRC, $SINK)
+          - metavariable-regex:
+              metavariable: $F
+              regex: (?i)^([a-z0-9]+_)?mem(cpy|move)$
+          - focus-metavariable: $SINK

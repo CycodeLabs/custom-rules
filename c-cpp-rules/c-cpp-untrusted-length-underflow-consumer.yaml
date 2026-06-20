@@ -1,0 +1,59 @@
+rules:
+  - id: c-cpp-untrusted-length-underflow-consumer
+    languages: [c, cpp]
+    paths:
+      include:
+        - "*.c"
+        - "*.h"
+        - "*.cpp"
+        - "*.cc"
+        - "*.cxx"
+        - "*.c++"
+        - "*.hpp"
+        - "*.hh"
+        - "*.hxx"
+        - "*.inc"
+    severity: WARNING
+    message: >-
+      A length that was decremented (`len -= k` / `x = len - k`) flows into the length argument of a
+      length-consuming API (set-identity, hex-decode, set-key/key-parameters, set-length) with no
+      proven lower-bound check. If the length is attacker-influenced and shorter than what is
+      subtracted, the unsigned result underflows to a huge value and the consumer reads/allocates far
+      past the real data. This complements the memcpy-size-underflow rules, whose sinks are only
+      memory-copy calls. Remediation: validate the length is large enough before subtracting, and
+      have the consumer reject implausibly large lengths.
+    mode: taint
+    options:
+      symbolic_propagation: true
+    metadata:
+      vulnerability_class: Integer Underflow
+      help: |
+        ## Summary
+        A length that was decremented (`len -= k` / `x = len - k`) flows into the length argument of a length-consuming API (set-identity, hex-decode, set-key/key-parameters, set-length) with no proven lower-bound check. If the length is attacker-influenced and shorter than what is subtracted, the unsigned result underflows to a huge value and the consumer reads/allocates far past the real data. This complements the memcpy-size-underflow rules, whose sinks are only memory-copy calls. Remediation: validate the length is large enough before subtracting, and have the consumer reject implausibly large lengths.
+
+        ## Remediation
+        Guard `len >= k` before subtracting; have the length consumer reject oversized lengths.
+      category: security
+      cwe:
+        - "CWE-191: Integer Underflow (Wrap or Wraparound)"
+        - "CWE-125: Out-of-bounds Read"
+        - "CWE-789: Memory Allocation with Excessive Size Value"
+      references:
+        - https://cwe.mitre.org/data/definitions/191.html
+      confidence: LOW
+      likelihood: MEDIUM
+      impact: HIGH
+      subcategory: [vuln]
+      technology: [c, cpp]
+      remediation: >-
+        Guard `len >= k` before subtracting; have the length consumer reject oversized lengths.
+    pattern-sources:
+      - pattern: $L -= $K
+      - pattern: $L = $X - $K
+      - pattern: $L = $X - $K - $J
+    pattern-sinks:
+      - patterns:
+          - pattern: $F(...)
+          - metavariable-regex:
+              metavariable: $F
+              regex: (?i)^([a-z0-9]+_)?(set_?identity|hex_?str_?to_?bytes|hexstrtobytes|set_?key_?param[a-z]*|setkeyparam[a-z]*|set_?length|set_?len|import_?key|deserialize_?key)$

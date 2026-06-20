@@ -1,0 +1,55 @@
+rules:
+  - id: c-cpp-insecure-randomness
+    languages: [c, cpp]
+    paths:
+      include:
+        - "*.c"
+        - "*.h"
+        - "*.cpp"
+        - "*.cc"
+        - "*.cxx"
+        - "*.c++"
+        - "*.hpp"
+        - "*.hh"
+        - "*.hxx"
+        - "*.inc"
+    severity: WARNING
+    message: >-
+      Use of a non-cryptographic PRNG (`rand`/`random`/`drand48`) or a predictable seed
+      (`srand(time(...))`, `srand(getpid())`). The output is predictable, so any security use (keys, IVs, nonces, salts, tokens, session IDs, challenge
+      values) can be reproduced or
+      brute-forced by an attacker who can estimate the seed. Remediation: for any security
+      purpose use a CSPRNG such as `getrandom(2)`/`/dev/urandom`, `arc4random_buf`, or your crypto
+      library's DRBG seeded from a hardware/OS entropy source, and never `rand()`/time-based seeds.
+    metadata:
+      vulnerability_class: Insecure Randomness
+      help: |
+        ## Summary
+        Use of a non-cryptographic PRNG (`rand`/`random`/`drand48`) or a predictable seed (`srand(time(...))`, `srand(getpid())`). The output is predictable, so any security use (keys, IVs, nonces, salts, tokens, session IDs, challenge values) can be reproduced or brute-forced by an attacker who can estimate the seed. Remediation: for any security purpose use a CSPRNG such as `getrandom(2)`/`/dev/urandom`, `arc4random_buf`, or your crypto library's DRBG seeded from a hardware/OS entropy source, and never `rand()`/time-based seeds.
+
+        ## Remediation
+        Use a CSPRNG (getrandom/arc4random/DRBG) for any security-relevant random value.
+      category: security
+      cwe:
+        - "CWE-338: Use of Cryptographically Weak Pseudo-Random Number Generator (PRNG)"
+        - "CWE-330: Use of Insufficiently Random Values"
+        - "CWE-337: Predictable Seed in Pseudo-Random Number Generator"
+      owasp:
+        - "A02:2021 - Cryptographic Failures"
+      references:
+        - https://cwe.mitre.org/data/definitions/338.html
+      confidence: LOW
+      likelihood: MEDIUM
+      impact: MEDIUM
+      subcategory: [audit]
+      technology: [c, cpp]
+      remediation: >-
+        Use a CSPRNG (getrandom/arc4random/DRBG) for any security-relevant random value.
+    pattern-either:
+      - pattern: srand(time(...))
+      - pattern: srand(getpid())
+      - pattern: srandom(time(...))
+      - pattern: srand(clock())
+      - pattern: rand()
+      - pattern: random()
+      - pattern: drand48()

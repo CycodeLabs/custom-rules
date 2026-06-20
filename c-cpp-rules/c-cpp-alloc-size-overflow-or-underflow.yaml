@@ -1,0 +1,84 @@
+rules:
+  - id: c-cpp-alloc-size-overflow-or-underflow
+    languages: [c, cpp]
+    paths:
+      include:
+        - "*.c"
+        - "*.h"
+        - "*.cpp"
+        - "*.cc"
+        - "*.cxx"
+        - "*.c++"
+        - "*.hpp"
+        - "*.hh"
+        - "*.hxx"
+        - "*.inc"
+    severity: WARNING
+    message: >-
+      An allocation size is computed with multiplication (`a * b`) or subtraction (`a - b`).
+      If a factor or the minuend is attacker-influenced, the product can overflow (wrap) and the
+      subtraction can underflow, yielding an allocation far smaller than the code then assumes ->
+      heap buffer overflow. This includes the `count * sizeof(type)` array idiom: it is usually
+      safe but IS the classic integer-overflow sink when `count` is attacker-controlled, so it is
+      flagged for review (confidence is MEDIUM precisely because many instances are bounded).
+      Remediation: use a checked/saturating multiply (reject `a > SIZE_MAX / b`), prefer
+      `calloc(count, size)` which performs the overflow check, and validate `a >= b` before any
+      subtraction.
+    metadata:
+      vulnerability_class: Integer Overflow or Underflow
+      help: |
+        ## Summary
+        An allocation size is computed with multiplication (`a * b`) or subtraction (`a - b`). If a factor or the minuend is attacker-influenced, the product can overflow (wrap) and the subtraction can underflow, yielding an allocation far smaller than the code then assumes -> heap buffer overflow. This includes the `count * sizeof(type)` array idiom: it is usually safe but IS the classic integer-overflow sink when `count` is attacker-controlled, so it is flagged for review (confidence is MEDIUM precisely because many instances are bounded). Remediation: use a checked/saturating multiply (reject `a > SIZE_MAX / b`), prefer `calloc(count, size)` which performs the overflow check, and validate `a >= b` before any subtraction.
+
+        ## Remediation
+        Use calloc()/checked multiply; check `a >= b` before subtracting.
+      category: security
+      cwe:
+        - "CWE-190: Integer Overflow or Wraparound"
+        - "CWE-191: Integer Underflow (Wrap or Wraparound)"
+        - "CWE-789: Memory Allocation with Excessive Size Value"
+      references:
+        - https://cwe.mitre.org/data/definitions/190.html
+      confidence: MEDIUM
+      likelihood: MEDIUM
+      impact: HIGH
+      subcategory: [vuln]
+      technology: [c, cpp]
+      remediation: >-
+        Use calloc()/checked multiply; check `a >= b` before subtracting.
+    pattern-either:
+      # multiplication of two runtime values (neither is sizeof): the high-risk overflow.
+      # `count * sizeof(type)` (the array idiom) is excluded; its dangerous *write*
+      # is caught by the copy rules; a checked multiply / calloc is the fix either way.
+      - patterns:
+          - pattern-either:
+              - pattern: $F($A * $B)
+              - pattern: $F($P, $A * $B)
+          - metavariable-regex:
+              metavariable: $F
+              regex: (?i)^([a-z0-9]+_)?((m|c|re)alloc|alloca)$
+          # both factors must be runtime values (contain a letter) and not sizeof, i.e. `var*var`.
+          # `var * literal` / `literal * var` / `const*const` is the bounded array idiom (same as
+          # count*sizeof) and is excluded; the high-risk case is two runtime values multiplied.
+          - metavariable-regex:
+              metavariable: $A
+              regex: '.*[a-zA-Z]'
+          - metavariable-regex:
+              metavariable: $B
+              regex: '.*[a-zA-Z]'
+          - metavariable-pattern:
+              metavariable: $A
+              patterns:
+                - pattern-not: sizeof(...)
+          - metavariable-pattern:
+              metavariable: $B
+              patterns:
+                - pattern-not: sizeof(...)
+      # subtraction underflow (keep `len - sizeof(hdr)` etc.; this is a real underflow sink)
+      - patterns:
+          - pattern-either:
+              - pattern: $F($A - $B)
+              - pattern: $F($P, $A - $B)
+          - metavariable-regex:
+              metavariable: $F
+              regex: (?i)^([a-z0-9]+_)?((m|c|re)alloc|alloca)$

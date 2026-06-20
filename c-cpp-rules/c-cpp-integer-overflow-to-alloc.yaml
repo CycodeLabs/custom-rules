@@ -1,0 +1,62 @@
+rules:
+  - id: c-cpp-integer-overflow-to-alloc
+    languages: [c, cpp]
+    paths:
+      include:
+        - "*.c"
+        - "*.h"
+        - "*.cpp"
+        - "*.cc"
+        - "*.cxx"
+        - "*.c++"
+        - "*.hpp"
+        - "*.hh"
+        - "*.hxx"
+        - "*.inc"
+    severity: WARNING
+    message: >-
+      A size is computed by multiplying (`size = a * b`) and then used as an allocation size in a
+      later statement. If a factor is attacker-influenced, the product can overflow (wrap) a 32-bit
+      size, so the allocation is far smaller than the code then writes into it -> heap overflow.
+      (The inline `malloc(a*b)` form is covered by `alloc-size-overflow-or-underflow`; this rule
+      catches the two-step `size = a*b; ... malloc(size)`, e.g. base64 `outLen = chunks*3`.)
+      Remediation: reject `a > SIZE_MAX / b` before multiplying, or use `calloc(count, size)`.
+    metadata:
+      vulnerability_class: Integer Overflow
+      help: |
+        ## Summary
+        A size is computed by multiplying (`size = a * b`) and then used as an allocation size in a later statement. If a factor is attacker-influenced, the product can overflow (wrap) a 32-bit size, so the allocation is far smaller than the code then writes into it -> heap overflow. (The inline `malloc(a*b)` form is covered by `alloc-size-overflow-or-underflow`; this rule catches the two-step `size = a*b; ... malloc(size)`, e.g. base64 `outLen = chunks*3`.) Remediation: reject `a > SIZE_MAX / b` before multiplying, or use `calloc(count, size)`.
+
+        ## Remediation
+        Reject `a > SIZE_MAX / b` before multiplying, or use calloc(count, size).
+      category: security
+      cwe:
+        - "CWE-190: Integer Overflow or Wraparound"
+        - "CWE-787: Out-of-bounds Write"
+        - "CWE-131: Incorrect Calculation of Buffer Size"
+      references:
+        - https://cwe.mitre.org/data/definitions/190.html
+      confidence: LOW
+      likelihood: MEDIUM
+      impact: HIGH
+      subcategory: [vuln]
+      technology: [c, cpp]
+      remediation: >-
+        Reject `a > SIZE_MAX / b` before multiplying, or use calloc(count, size).
+    patterns:
+      # the product is later passed to an allocator. Using pattern-inside for the multiply and a
+      # bare call pattern for the sink makes it robust to a cast or an `if (NULL == (p = alloc(sz)))`
+      # wrapper around the allocation (e.g. base64 `*pRetMesgLen = numChunks*3; ... MALLOC(*pRetMesgLen)`).
+      - pattern-inside: |
+          $SZ = $A * $B;
+          ...
+      - pattern: $ALLOC($SZ)
+      - metavariable-regex:
+          metavariable: $ALLOC
+          regex: (?i)^([a-z0-9]+_)?((m|c|re)alloc)$
+      # at least one factor must be a non-sizeof variable (an attacker-influenceable count);
+      # `sizeof(x) * sizeof(y)` or pure constants cannot overflow at runtime.
+      - metavariable-regex:
+          metavariable: $A
+          regex: .*[a-z]
+      - pattern-not: $ALLOC(sizeof(...) * sizeof(...))

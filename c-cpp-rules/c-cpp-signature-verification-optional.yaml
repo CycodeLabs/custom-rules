@@ -1,0 +1,61 @@
+rules:
+  - id: c-cpp-signature-verification-optional
+    languages: [c, cpp]
+    paths:
+      include:
+        - "*.c"
+        - "*.h"
+        - "*.cpp"
+        - "*.cc"
+        - "*.cxx"
+        - "*.c++"
+        - "*.hpp"
+        - "*.hh"
+        - "*.hxx"
+        - "*.inc"
+    severity: WARNING
+    message: >-
+      A verification path appears to "fail open": when the signature/certificate/MAC is absent,
+      NULL, or empty, the code sets a success status (or returns success) instead of rejecting the
+      input. An attacker who simply omits the signature then bypasses authentication / integrity
+      checking entirely, which on an update/provisioning channel is remote code execution.
+      Remediation: treat a missing or empty signature as a hard failure (fail closed); only return
+      success after the signature has actually been verified against a trusted key.
+    metadata:
+      vulnerability_class: Improper Verification of Cryptographic Signature
+      help: |
+        ## Summary
+        A verification path appears to "fail open": when the signature/certificate/MAC is absent, NULL, or empty, the code sets a success status (or returns success) instead of rejecting the input. An attacker who simply omits the signature then bypasses authentication / integrity checking entirely, which on an update/provisioning channel is remote code execution. Remediation: treat a missing or empty signature as a hard failure (fail closed); only return success after the signature has actually been verified against a trusted key.
+
+        ## Remediation
+        Fail closed when the signature/cert is missing; return success only after verifying it.
+      category: security
+      cwe:
+        - "CWE-347: Improper Verification of Cryptographic Signature"
+        - "CWE-345: Insufficient Verification of Data Authenticity"
+        - "CWE-306: Missing Authentication for Critical Function"
+      references:
+        - https://cwe.mitre.org/data/definitions/347.html
+      confidence: LOW
+      likelihood: MEDIUM
+      impact: CRITICAL
+      subcategory: [vuln]
+      technology: [c, cpp]
+      remediation: >-
+        Fail closed when the signature/cert is missing; return success only after verifying it.
+    patterns:
+      - pattern-either:
+          - pattern: |
+              if (NULL == $SIG) { ... return $OK; }
+          - pattern: |
+              if ($SIG == NULL) { ... return $OK; }
+          - pattern: |
+              if (NULL == $SIG) { ... $S = $OK; ... }
+          - pattern: |
+              if ($SIG == NULL) { ... $S = $OK; ... }
+      - metavariable-regex:
+          metavariable: $SIG
+          regex: (?i).*(sig|cert|hmac|digest|mac|tag|signature)
+      - metavariable-regex:
+          metavariable: $OK
+          regex: (?i)^(ok|.*_ok|success|.*_success|true|valid|.*_valid|noerror|0)$

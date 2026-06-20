@@ -1,0 +1,55 @@
+rules:
+  - id: c-cpp-path-traversal-untrusted-name
+    languages: [c, cpp]
+    paths:
+      include:
+        - "*.c"
+        - "*.h"
+        - "*.cpp"
+        - "*.cc"
+        - "*.cxx"
+        - "*.c++"
+        - "*.hpp"
+        - "*.hh"
+        - "*.hxx"
+        - "*.inc"
+    severity: WARNING
+    message: >-
+      A filesystem path is built by joining a directory with another component (or an archive
+      entry is extracted) without visible rejection of `..`, absolute paths, or drive/backslash
+      prefixes. If the joined component comes from untrusted input (an archive entry name, a
+      server/JSON-supplied filename, an attacker-controlled identifier), it can traverse outside
+      the intended directory and read or overwrite arbitrary files. Remediation: canonicalize the
+      final path and verify it stays within the intended base directory; reject components
+      containing `..`, leading `/` or `\\`, or a drive prefix, before using them.
+    metadata:
+      vulnerability_class: Path Traversal
+      help: |
+        ## Summary
+        A filesystem path is built by joining a directory with another component (or an archive entry is extracted) without visible rejection of `..`, absolute paths, or drive/backslash prefixes. If the joined component comes from untrusted input (an archive entry name, a server/JSON-supplied filename, an attacker-controlled identifier), it can traverse outside the intended directory and read or overwrite arbitrary files. Remediation: canonicalize the final path and verify it stays within the intended base directory; reject components containing `..`, leading `/` or `\`, or a drive prefix, before using them.
+
+        ## Remediation
+        Reject `..`/absolute components and canonicalize+prefix-check the path against its base dir.
+      category: security
+      cwe:
+        - "CWE-22: Improper Limitation of a Pathname to a Restricted Directory ('Path Traversal')"
+        - "CWE-23: Relative Path Traversal"
+      owasp:
+        - "A01:2021 - Broken Access Control"
+      references:
+        - https://cwe.mitre.org/data/definitions/22.html
+      confidence: LOW
+      likelihood: MEDIUM
+      impact: HIGH
+      subcategory: [vuln]
+      technology: [c, cpp]
+      remediation: >-
+        Reject `..`/absolute components and canonicalize+prefix-check the path against its base dir.
+    pattern-either:
+      # building a path by joining a directory and a (possibly untrusted) component
+      - pattern: $F(..., "%s/%s", $DIR, $NAME)
+      - pattern: $F(..., "%s/%s", $DIR, $NAME, ...)
+      - pattern: $F(..., "%s\\%s", $DIR, $NAME)
+      # extracting an archive entry to disk (miniz / common zip libs); zip-slip
+      - pattern: mz_zip_reader_extract_file_to_file(...)
+      - pattern: mz_zip_reader_extract_to_file(...)

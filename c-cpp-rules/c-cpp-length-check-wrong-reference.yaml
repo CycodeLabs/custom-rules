@@ -1,0 +1,58 @@
+rules:
+  - id: c-cpp-length-check-wrong-reference
+    languages: [c, cpp]
+    paths:
+      include:
+        - "*.c"
+        - "*.h"
+        - "*.cpp"
+        - "*.cc"
+        - "*.cxx"
+        - "*.c++"
+        - "*.hpp"
+        - "*.hh"
+        - "*.hxx"
+        - "*.inc"
+    severity: WARNING
+    message: >-
+      A length/bounds check uses the wrong reference: it compares a field against the TOTAL or
+      declared size (`field > size + k`) instead of the bytes actually remaining after the cursor,
+      or it consumes a length prefix the check never accounted for. Either way an attacker-chosen
+      sub-length passes the check and the parser reads/advances past the buffer (and unsigned
+      `remaining -= len` can underflow, defeating every later check). Covers the TLS1.3
+      pre_shared_key `> size + 2` off-by, the MQTT user-property prefix-omission underflow, and the
+      OCSP status_request total-vs-remaining mistake. Remediation: bound each sub-field against the
+      bytes remaining after the cursor (`field <= size - consumed`), and account for every byte you
+      then advance.
+    metadata:
+      vulnerability_class: Out-of-bounds Read
+      help: |
+        ## Summary
+        A length/bounds check uses the wrong reference: it compares a field against the TOTAL or declared size (`field > size + k`) instead of the bytes actually remaining after the cursor, or it consumes a length prefix the check never accounted for. Either way an attacker-chosen sub-length passes the check and the parser reads/advances past the buffer (and unsigned `remaining -= len` can underflow, defeating every later check). Covers the TLS1.3 pre_shared_key `> size + 2` off-by, the MQTT user-property prefix-omission underflow, and the OCSP status_request total-vs-remaining mistake. Remediation: bound each sub-field against the bytes remaining after the cursor (`field <= size - consumed`), and account for every byte you then advance.
+
+        ## Remediation
+        Bound sub-fields against remaining bytes (size - consumed); count every advanced byte.
+      category: security
+      cwe:
+        - "CWE-125: Out-of-bounds Read"
+        - "CWE-191: Integer Underflow (Wrap or Wraparound)"
+        - "CWE-697: Incorrect Comparison"
+      references:
+        - https://cwe.mitre.org/data/definitions/125.html
+      confidence: LOW
+      likelihood: MEDIUM
+      impact: HIGH
+      subcategory: [vuln]
+      technology: [c, cpp]
+      remediation: >-
+        Bound sub-fields against remaining bytes (size - consumed); count every advanced byte.
+    pattern-either:
+      # bound check adds to the capacity instead of subtracting consumed bytes (inverted/off-by)
+      - pattern: if ($F > $SIZE + $K) { ... }
+      # consume a 2-byte length prefix + the field, after a guard that only checked the field
+      - pattern: |
+          *$IT += 2; *$PL -= 2;
+          *$IT += $LEN; *$PL -= $LEN;
+      - pattern: |
+          $IT += 2; $PL -= 2;
+          $IT += $LEN; $PL -= $LEN;

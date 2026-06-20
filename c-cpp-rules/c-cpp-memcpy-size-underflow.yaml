@@ -1,0 +1,60 @@
+rules:
+  - id: c-cpp-memcpy-size-underflow
+    languages: [c, cpp]
+    paths:
+      include:
+        - "*.c"
+        - "*.h"
+        - "*.cpp"
+        - "*.cc"
+        - "*.cxx"
+        - "*.c++"
+        - "*.hpp"
+        - "*.hh"
+        - "*.hxx"
+        - "*.inc"
+    severity: ERROR
+    message: >-
+      The size argument of a memory copy is a subtraction (`a - b`). If `a` is an
+      attacker-influenced length (e.g. a parsed packet/field length) and is not proven to be
+      >= `b` before the subtraction, the unsigned result wraps to a huge value, causing an
+      out-of-bounds read of the source and/or an out-of-bounds write of the destination.
+      Remediation: validate `a >= b` (fail closed) immediately before the subtraction, keep
+      length variables in a width that cannot wrap silently, and bound the copy length to the
+      destination capacity.
+    metadata:
+      vulnerability_class: Out-of-bounds Write
+      help: |
+        ## Summary
+        The size argument of a memory copy is a subtraction (`a - b`). If `a` is an attacker-influenced length (e.g. a parsed packet/field length) and is not proven to be >= `b` before the subtraction, the unsigned result wraps to a huge value, causing an out-of-bounds read of the source and/or an out-of-bounds write of the destination. Remediation: validate `a >= b` (fail closed) immediately before the subtraction, keep length variables in a width that cannot wrap silently, and bound the copy length to the destination capacity.
+
+        ## Remediation
+        Check `len >= sub` before computing `len - sub`; bound the copy to the destination size.
+      category: security
+      cwe:
+        - "CWE-191: Integer Underflow (Wrap or Wraparound)"
+        - "CWE-787: Out-of-bounds Write"
+        - "CWE-125: Out-of-bounds Read"
+      owasp:
+        - "A06:2021 - Vulnerable and Outdated Components"
+      references:
+        - https://cwe.mitre.org/data/definitions/191.html
+      confidence: MEDIUM
+      likelihood: MEDIUM
+      impact: HIGH
+      subcategory: [vuln]
+      technology: [c, cpp]
+      remediation: >-
+        Check `len >= sub` before computing `len - sub`; bound the copy to the destination size.
+    patterns:
+      - pattern: $F(..., $A - $B)
+      - metavariable-regex:
+          metavariable: $F
+          regex: (?i)^([a-z0-9]+_)?mem(cpy|move)$
+      # `sizeof(x) - k` is compile-time bounded (e.g. copying a literal minus its NUL) -> safe
+      - pattern-not: $F(..., sizeof(...) - $B)
+      # the minuend must be a runtime value (contains a lowercase letter); an ALL-CAPS constant
+      # minuend (`SOME_LEN - 1`, `BLOCK_SIZE - k`) is compile-time bounded -> not an underflow
+      - metavariable-regex:
+          metavariable: $A
+          regex: '.*[a-z]'

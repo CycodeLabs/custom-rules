@@ -1,0 +1,52 @@
+rules:
+  - id: c-cpp-command-injection-nonliteral
+    languages: [c, cpp]
+    paths:
+      include:
+        - "*.c"
+        - "*.h"
+        - "*.cpp"
+        - "*.cc"
+        - "*.cxx"
+        - "*.c++"
+        - "*.hpp"
+        - "*.hh"
+        - "*.hxx"
+        - "*.inc"
+    severity: ERROR
+    message: >-
+      A shell/command-execution function (`system`, `popen`) is called with a non-literal
+      argument. If any part of the command string is attacker-controlled, this is OS command
+      injection. Remediation: avoid the shell entirely and use `execve`/`posix_spawn` with an
+      explicit argument vector and no shell, validate/allow-list any external input, and never
+      build a command line by concatenating untrusted data.
+    metadata:
+      vulnerability_class: OS Command Injection
+      help: |
+        ## Summary
+        A shell/command-execution function (`system`, `popen`) is called with a non-literal argument. If any part of the command string is attacker-controlled, this is OS command injection. Remediation: avoid the shell entirely and use `execve`/`posix_spawn` with an explicit argument vector and no shell, validate/allow-list any external input, and never build a command line by concatenating untrusted data.
+
+        ## Remediation
+        Use execve/posix_spawn with an argument vector (no shell); allow-list inputs.
+      category: security
+      cwe:
+        - "CWE-78: Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')"
+      owasp:
+        - "A03:2021 - Injection"
+      references:
+        - https://cwe.mitre.org/data/definitions/78.html
+      confidence: MEDIUM
+      likelihood: MEDIUM
+      impact: CRITICAL
+      subcategory: [vuln]
+      technology: [c, cpp]
+      remediation: >-
+        Use execve/posix_spawn with an argument vector (no shell); allow-list inputs.
+    patterns:
+      - pattern-either:
+          - pattern: system($CMD)
+          - pattern: popen($CMD, $MODE)
+      - metavariable-pattern:
+          metavariable: $CMD
+          patterns:
+            - pattern-not: '"..."'

@@ -1,0 +1,70 @@
+rules:
+  - id: c-cpp-declared-length-alloc-copy-mismatch
+    languages: [c, cpp]
+    paths:
+      include:
+        - "*.c"
+        - "*.h"
+        - "*.cpp"
+        - "*.cc"
+        - "*.cxx"
+        - "*.c++"
+        - "*.hpp"
+        - "*.hh"
+        - "*.hxx"
+        - "*.inc"
+    severity: WARNING
+    message: >-
+      A buffer is allocated using one length expression but filled using a different one, with no
+      visible check that the copied size fits the allocation. When the allocation size is an
+      attacker-controlled field (a protocol "total length" / Content-Length) and the copy uses a
+      different (actual received) amount, or vice-versa, the copy can exceed the allocation and
+      overflow the heap (out-of-bounds write). Remediation: size the copy from the same value used
+      for the allocation, or explicitly check `copy_len <= alloc_len` before copying.
+    metadata:
+      vulnerability_class: Out-of-bounds Write
+      help: |
+        ## Summary
+        A buffer is allocated using one length expression but filled using a different one, with no visible check that the copied size fits the allocation. When the allocation size is an attacker-controlled field (a protocol "total length" / Content-Length) and the copy uses a different (actual received) amount, or vice-versa, the copy can exceed the allocation and overflow the heap (out-of-bounds write). Remediation: size the copy from the same value used for the allocation, or explicitly check `copy_len <= alloc_len` before copying.
+
+        ## Remediation
+        Derive the copy length from the allocation length, or guard with copy_len <= alloc_len.
+      category: security
+      cwe:
+        - "CWE-787: Out-of-bounds Write"
+        - "CWE-770: Allocation of Resources Without Limits or Throttling"
+      references:
+        - https://cwe.mitre.org/data/definitions/787.html
+      confidence: LOW
+      likelihood: LOW
+      impact: HIGH
+      subcategory: [audit]
+      technology: [c, cpp]
+      remediation: >-
+        Derive the copy length from the allocation length, or guard with copy_len <= alloc_len.
+    patterns:
+      - pattern: |
+          $P = $ALLOC($A);
+          ...
+          $CPY($P, $SRC, $B);
+      - metavariable-regex:
+          metavariable: $ALLOC
+          regex: (?i)^([a-z0-9]+_)?((m|c|re)alloc)$
+      - metavariable-regex:
+          metavariable: $CPY
+          regex: (?i)^([a-z0-9]+_)?mem(cpy|move)$
+      - pattern-not: |
+          $P = $ALLOC($A);
+          ...
+          $CPY($P, $SRC, $A);
+      # a fixed-size copy (`memcpy(p, s, sizeof(T))`) is compile-time bounded, not a length mismatch
+      - metavariable-pattern:
+          metavariable: $B
+          patterns:
+            - pattern-not: sizeof(...)
+      # an integer-literal copy size (`memcpy(p, s, 16)`) is a deliberate fixed write, not an
+      # attacker-length mismatch; the dangerous case always sizes the copy from a variable.
+      - metavariable-regex:
+          metavariable: $B
+          regex: .*[a-zA-Z_]
+      - focus-metavariable: $B

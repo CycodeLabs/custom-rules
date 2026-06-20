@@ -1,0 +1,51 @@
+rules:
+  - id: c-cpp-unbounded-scanf-string
+    languages: [c, cpp]
+    paths:
+      include:
+        - "*.c"
+        - "*.h"
+        - "*.cpp"
+        - "*.cc"
+        - "*.cxx"
+        - "*.c++"
+        - "*.hpp"
+        - "*.hh"
+        - "*.hxx"
+        - "*.inc"
+    severity: WARNING
+    message: >-
+      A `scanf`-family call uses an unbounded `%s` (or `%[...]`) conversion. The function writes
+      all matched input into the destination with no length limit, so input longer than the
+      buffer overflows it. Remediation: always specify a maximum field width that is smaller
+      than the destination buffer, e.g. `%31s` for a 32-byte buffer, or parse with a
+      length-bounded API.
+    metadata:
+      vulnerability_class: Buffer Overflow
+      help: |
+        ## Summary
+        A `scanf`-family call uses an unbounded `%s` (or `%[...]`) conversion. The function writes all matched input into the destination with no length limit, so input longer than the buffer overflows it. Remediation: always specify a maximum field width that is smaller than the destination buffer, e.g. `%31s` for a 32-byte buffer, or parse with a length-bounded API.
+
+        ## Remediation
+        Add a field width to %s (e.g. %31s for a 32-byte buffer) or use a bounded parser.
+      category: security
+      cwe:
+        - "CWE-120: Buffer Copy without Checking Size of Input ('Classic Buffer Overflow')"
+        - "CWE-787: Out-of-bounds Write"
+      references:
+        - https://cwe.mitre.org/data/definitions/120.html
+      confidence: MEDIUM
+      likelihood: MEDIUM
+      impact: HIGH
+      subcategory: [vuln]
+      technology: [c, cpp]
+      remediation: >-
+        Add a field width to %s (e.g. %31s for a 32-byte buffer) or use a bounded parser.
+    patterns:
+      - pattern-either:
+          - pattern: scanf($FMT, ...)
+          - pattern: sscanf($SRC, $FMT, ...)
+          - pattern: fscanf($STREAM, $FMT, ...)
+      - metavariable-regex:
+          metavariable: $FMT
+          regex: '.*%s'

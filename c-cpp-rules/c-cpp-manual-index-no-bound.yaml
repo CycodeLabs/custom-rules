@@ -1,0 +1,63 @@
+rules:
+  - id: c-cpp-manual-index-no-bound
+    languages: [c, cpp]
+    paths:
+      include:
+        - "*.c"
+        - "*.h"
+        - "*.cpp"
+        - "*.cc"
+        - "*.cxx"
+        - "*.c++"
+        - "*.hpp"
+        - "*.hh"
+        - "*.hxx"
+        - "*.inc"
+    severity: WARNING
+    message: >-
+      Hand-rolled parsing reads past what was length-validated: either a buffer is copied for
+      `len + k` bytes from an offset that was only bounds-checked for `len` (the constant prefix
+      width is dropped from the check), or a buffer is indexed right after a `memcmp` that only
+      validated fewer bytes than the index reaches. Both over-read attacker-controlled input.
+      Remediation: include every byte you read (prefix widths, the indexed byte) in the bounds
+      check before dereferencing; bound each index against the remaining buffer length.
+    metadata:
+      vulnerability_class: Out-of-bounds Read
+      help: |
+        ## Summary
+        Hand-rolled parsing reads past what was length-validated: either a buffer is copied for `len + k` bytes from an offset that was only bounds-checked for `len` (the constant prefix width is dropped from the check), or a buffer is indexed right after a `memcmp` that only validated fewer bytes than the index reaches. Both over-read attacker-controlled input. Remediation: include every byte you read (prefix widths, the indexed byte) in the bounds check before dereferencing; bound each index against the remaining buffer length.
+
+        ## Remediation
+        Count prefix/indexed bytes in the bounds check; bound every index against remaining length.
+      category: security
+      cwe:
+        - "CWE-125: Out-of-bounds Read"
+        - "CWE-193: Off-by-one Error"
+      references:
+        - https://cwe.mitre.org/data/definitions/125.html
+      confidence: LOW
+      likelihood: MEDIUM
+      impact: MEDIUM
+      subcategory: [vuln]
+      technology: [c, cpp]
+      remediation: >-
+        Count prefix/indexed bytes in the bounds check; bound every index against remaining length.
+    pattern-either:
+      # copy `len + k` bytes from an indexed offset (the +k is omitted from the bound check)
+      - patterns:
+          - pattern-either:
+              - pattern: $CPY($DST, &($BUF[$IDX]), $LEN + $K);
+              - pattern: $CPY($DST, &$BUF[$IDX], $LEN + $K);
+              - pattern: $CPY($DST, $BUF + $IDX, $LEN + $K);
+          - metavariable-regex:
+              metavariable: $CPY
+              regex: (?i)^([a-z0-9]+_)?mem(cpy|move)$
+      # index a buffer just after a memcmp that compared fewer bytes than the index reaches
+      - patterns:
+          - pattern: |
+              $F($BUF, $T, $K, ...);
+              ...
+              $X = $BUF[$IDX];
+          - metavariable-regex:
+              metavariable: $F
+              regex: (?i)^([a-z0-9]+_)?memcmp$

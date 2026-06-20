@@ -1,0 +1,54 @@
+rules:
+  - id: c-cpp-length-prefixed-walk-no-minimum
+    languages: [c, cpp]
+    paths:
+      include:
+        - "*.c"
+        - "*.h"
+        - "*.cpp"
+        - "*.cc"
+        - "*.cxx"
+        - "*.c++"
+        - "*.hpp"
+        - "*.hh"
+        - "*.hxx"
+        - "*.inc"
+    severity: WARNING
+    message: >-
+      A parsing loop advances a cursor by a length/size byte read from the buffer itself
+      (`p += *(p + k)` / `p += p[k]`) with no check that the increment is non-zero / above the
+      minimum element size. An attacker-supplied element with length 0 (or below the header
+      size) makes the cursor fail to advance, producing an infinite loop (denial of service),
+      and reading the length one-past-the-end can over-read. Remediation: validate each
+      element's declared length is >= the minimum element size and that it does not exceed the
+      remaining bytes before advancing.
+    metadata:
+      vulnerability_class: Loop with Unreachable Exit Condition (DoS)
+      help: |
+        ## Summary
+        A parsing loop advances a cursor by a length/size byte read from the buffer itself (`p += *(p + k)` / `p += p[k]`) with no check that the increment is non-zero / above the minimum element size. An attacker-supplied element with length 0 (or below the header size) makes the cursor fail to advance, producing an infinite loop (denial of service), and reading the length one-past-the-end can over-read. Remediation: validate each element's declared length is >= the minimum element size and that it does not exceed the remaining bytes before advancing.
+
+        ## Remediation
+        Reject element length < minimum and > remaining bytes before `cursor += len`.
+      category: security
+      cwe:
+        - "CWE-835: Loop with Unreachable Exit Condition ('Infinite Loop')"
+        - "CWE-125: Out-of-bounds Read"
+      references:
+        - https://cwe.mitre.org/data/definitions/835.html
+      confidence: MEDIUM
+      likelihood: MEDIUM
+      impact: MEDIUM
+      subcategory: [vuln]
+      technology: [c, cpp]
+      remediation: >-
+        Reject element length < minimum and > remaining bytes before `cursor += len`.
+    pattern-either:
+      - pattern: while ($P < $END) $P += *($P + $K);
+      - pattern: |
+          while ($P < $END)
+            $P += *($P + $K);
+      - pattern: while ($P < $END) $P += $P[$K];
+      - pattern: |
+          while ($P < $END)
+            $P += $P[$K];

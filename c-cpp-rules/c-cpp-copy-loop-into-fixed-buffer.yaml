@@ -1,0 +1,63 @@
+rules:
+  - id: c-cpp-copy-loop-into-fixed-buffer
+    languages: [c, cpp]
+    paths:
+      include:
+        - "*.c"
+        - "*.h"
+        - "*.cpp"
+        - "*.cc"
+        - "*.cxx"
+        - "*.c++"
+        - "*.hpp"
+        - "*.hh"
+        - "*.hxx"
+        - "*.inc"
+    severity: WARNING
+    message: >-
+      A byte-copy loop writes into a fixed-size buffer at an index (`buf[i] = src[i]` /
+      `*(buf+i) = *(src+i)`) where the buffer was allocated with a constant size. If the loop is
+      bounded by the INPUT length (or a NUL/terminator scan) rather than by the buffer's capacity,
+      input longer than the buffer overflows it. This is the classic "copy the field into a small
+      fixed scratch buffer" overflow (e.g. accumulating an HTTP chunk-size line into a 20-byte
+      buffer). Remediation: bound the loop index by the destination size (`i < sizeof(buf)` /
+      `i < CAP`), or size the buffer from the validated input length.
+    metadata:
+      vulnerability_class: Out-of-bounds Write
+      help: |
+        ## Summary
+        A byte-copy loop writes into a fixed-size buffer at an index (`buf[i] = src[i]` / `*(buf+i) = *(src+i)`) where the buffer was allocated with a constant size. If the loop is bounded by the INPUT length (or a NUL/terminator scan) rather than by the buffer's capacity, input longer than the buffer overflows it. This is the classic "copy the field into a small fixed scratch buffer" overflow (e.g. accumulating an HTTP chunk-size line into a 20-byte buffer). Remediation: bound the loop index by the destination size (`i < sizeof(buf)` / `i < CAP`), or size the buffer from the validated input length.
+
+        ## Remediation
+        Bound the loop index by the destination capacity, or size the buffer from the input length.
+      category: security
+      cwe:
+        - "CWE-787: Out-of-bounds Write"
+        - "CWE-120: Buffer Copy without Checking Size of Input"
+        - "CWE-193: Off-by-one Error"
+      references:
+        - https://cwe.mitre.org/data/definitions/787.html
+      confidence: LOW
+      likelihood: MEDIUM
+      impact: HIGH
+      subcategory: [vuln]
+      technology: [c, cpp]
+      remediation: >-
+        Bound the loop index by the destination capacity, or size the buffer from the input length.
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $DST = $ALLOC($CAP);
+              ...
+              *($DST + $I) = *($SRC + $I);
+          - pattern: |
+              $DST = $ALLOC($CAP);
+              ...
+              $DST[$I] = $SRC[$I];
+      - metavariable-regex:
+          metavariable: $ALLOC
+          regex: (?i)^([a-z0-9]+_)?((m|c|re)alloc)$
+      # fixed-size allocation: a numeric literal or an ALL-CAPS size macro (not a runtime length)
+      - metavariable-regex:
+          metavariable: $CAP
+          regex: ^([0-9]+|[A-Z_][A-Z0-9_]*)$

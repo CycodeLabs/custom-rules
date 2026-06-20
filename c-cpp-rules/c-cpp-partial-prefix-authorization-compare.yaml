@@ -1,0 +1,66 @@
+rules:
+  - id: c-cpp-partial-prefix-authorization-compare
+    languages: [c, cpp]
+    paths:
+      include:
+        - "*.c"
+        - "*.h"
+        - "*.cpp"
+        - "*.cc"
+        - "*.cxx"
+        - "*.c++"
+        - "*.hpp"
+        - "*.hh"
+        - "*.hxx"
+        - "*.inc"
+    severity: WARNING
+    message: >-
+      A comparison uses `strlen(value)` (the length of one operand) as the number of bytes to
+      compare. This only compares a prefix, so any value that is a prefix of the expected
+      string is accepted; e.g. token "adm" matches expected "admin", and "" matches anything.
+      When used for authentication/authorization (account, device, role, token, path) this is
+      an auth bypass. Remediation: compare full, equal-length values: check the lengths are
+      equal first, or use `strcmp` on NUL-terminated strings, or compare a fixed canonical
+      length.
+    metadata:
+      vulnerability_class: Improper Authorization
+      help: |
+        ## Summary
+        A comparison uses `strlen(value)` (the length of one operand) as the number of bytes to compare. This only compares a prefix, so any value that is a prefix of the expected string is accepted; e.g. token "adm" matches expected "admin", and "" matches anything. When used for authentication/authorization (account, device, role, token, path) this is an auth bypass. Remediation: compare full, equal-length values: check the lengths are equal first, or use `strcmp` on NUL-terminated strings, or compare a fixed canonical length.
+
+        ## Remediation
+        Require equal lengths or use strcmp; do not size the comparison by strlen of one side.
+      category: security
+      cwe:
+        - "CWE-187: Partial String Comparison"
+        - "CWE-697: Incorrect Comparison"
+        - "CWE-285: Improper Authorization"
+      references:
+        - https://cwe.mitre.org/data/definitions/187.html
+      confidence: MEDIUM
+      likelihood: MEDIUM
+      impact: HIGH
+      subcategory: [vuln]
+      technology: [c, cpp]
+      remediation: >-
+        Require equal lengths or use strcmp; do not size the comparison by strlen of one side.
+    patterns:
+      - pattern: $CMP($A, $B, $LEN($C))
+      - metavariable-regex:
+          metavariable: $CMP
+          regex: (?i)^([a-z0-9]+_)?(strncmp|memcmp)$
+      - metavariable-regex:
+          metavariable: $LEN
+          regex: (?i)^([a-z0-9]+_)?strlen$
+      # The bypass REQUIRES the compare length to come from a variable (attacker) operand:
+      # if it is strlen() of a constant the length is FIXED and cannot be shortened. Exclude
+      # an ALL-CAPS macro length operand (e.g. CONTENT_TYPE, MANDATORY_BASE_PATH); those are
+      # deliberate "does this line start with <known prefix>" parsing checks, not auth.
+      - metavariable-regex:
+          metavariable: $C
+          regex: .*[a-z]
+      # strlen of a string LITERAL is a deliberate fixed-prefix check (e.g. scheme/header), not a bypass
+      - pattern-not: $CMP($A, $B, $LEN("..."))
+      # comparing against a string literal (matching a known keyword/state) is not an identity check
+      - pattern-not: $CMP("...", $B, $LEN($C))
+      - pattern-not: $CMP($A, "...", $LEN($C))

@@ -1,0 +1,54 @@
+rules:
+  - id: c-cpp-world-writable-permission
+    languages: [c, cpp]
+    paths:
+      include:
+        - "*.c"
+        - "*.h"
+        - "*.cpp"
+        - "*.cc"
+        - "*.cxx"
+        - "*.c++"
+        - "*.hpp"
+        - "*.hh"
+        - "*.hxx"
+        - "*.inc"
+    severity: WARNING
+    message: >-
+      A file or directory is created/changed with world-writable permissions (mode includes the
+      other-write bit, e.g. 0777/0666/022, or S_IWOTH). Any local user can then modify the
+      file's contents (tampering with config, keys, or executables) or win a race on it.
+      Remediation: grant the least privilege needed (typically 0600 for secrets/files, 0700 for
+      directories), drop the other-write bit, and set a strict umask before creating files.
+    metadata:
+      vulnerability_class: Incorrect Permission Assignment for Critical Resource
+      help: |
+        ## Summary
+        A file or directory is created/changed with world-writable permissions (mode includes the other-write bit, e.g. 0777/0666/022, or S_IWOTH). Any local user can then modify the file's contents (tampering with config, keys, or executables) or win a race on it. Remediation: grant the least privilege needed (typically 0600 for secrets/files, 0700 for directories), drop the other-write bit, and set a strict umask before creating files.
+
+        ## Remediation
+        Use least-privilege modes (0600/0700); never set the world-write bit; set a strict umask.
+      category: security
+      cwe:
+        - "CWE-732: Incorrect Permission Assignment for Critical Resource"
+        - "CWE-276: Incorrect Default Permissions"
+      references:
+        - https://cwe.mitre.org/data/definitions/732.html
+      confidence: MEDIUM
+      likelihood: MEDIUM
+      impact: MEDIUM
+      subcategory: [vuln]
+      technology: [c, cpp]
+      remediation: >-
+        Use least-privilege modes (0600/0700); never set the world-write bit; set a strict umask.
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: chmod($PATH, $MODE)
+              - pattern: fchmod($FD, $MODE)
+              - pattern: open($PATH, $FLAGS, $MODE)
+              - pattern: openat($DFD, $PATH, $FLAGS, $MODE)
+          - metavariable-regex:
+              metavariable: $MODE
+              regex: ^0[0-7]*[2367]$
+      - pattern: chmod($PATH, S_IWOTH)

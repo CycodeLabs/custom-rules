@@ -1,0 +1,61 @@
+rules:
+  - id: c-cpp-ignored-security-check-return
+    languages: [c, cpp]
+    paths:
+      include:
+        - "*.c"
+        - "*.h"
+        - "*.cpp"
+        - "*.cc"
+        - "*.cxx"
+        - "*.c++"
+        - "*.hpp"
+        - "*.hh"
+        - "*.hxx"
+        - "*.inc"
+    severity: WARNING
+    message: >-
+      The return value of a verification/authentication function is discarded (the call is a
+      bare statement or cast to void). Functions named like verify/authenticate/validate report
+      their success or failure ONLY through the return value; ignoring it means a failed
+      certificate/signature/MAC/permission check is treated as success: an authentication or
+      signature-verification bypass. Remediation: check the return value and fail closed on any
+      non-success result before trusting the data.
+    metadata:
+      vulnerability_class: Improper Check of Security Return Value
+      help: |
+        ## Summary
+        The return value of a verification/authentication function is discarded (the call is a bare statement or cast to void). Functions named like verify/authenticate/validate report their success or failure ONLY through the return value; ignoring it means a failed certificate/signature/MAC/permission check is treated as success: an authentication or signature-verification bypass. Remediation: check the return value and fail closed on any non-success result before trusting the data.
+
+        ## Remediation
+        Capture and check the return value; fail closed on any non-success result.
+      category: security
+      cwe:
+        - "CWE-252: Unchecked Return Value"
+        - "CWE-295: Improper Certificate Validation"
+        - "CWE-347: Improper Verification of Cryptographic Signature"
+      references:
+        - https://cwe.mitre.org/data/definitions/252.html
+      confidence: LOW
+      likelihood: MEDIUM
+      impact: HIGH
+      subcategory: [vuln]
+      technology: [c, cpp]
+      remediation: >-
+        Capture and check the return value; fail closed on any non-success result.
+    patterns:
+      - pattern-either:
+          - pattern: $F(...);
+          - pattern: (void)$F(...);
+      - metavariable-regex:
+          metavariable: $F
+          regex: (?i)^([a-z0-9]+_)?(verify|authenticate|validate|checksignature|check_sig|verifysignature|verify_sig|verifycert|verify_cert)([a-z0-9_]*)?$
+      # result is actually used -> not ignored. Deep-expression forms catch the result being
+      # consumed inside a larger expression (comparison/ternary), e.g.
+      # `return (OK == verifyType(x)) ? OK : ERR;` or `status = (OK == verify(x));`.
+      - pattern-not: $LHS = $F(...);
+      - pattern-not: $TYPE $LHS = $F(...);
+      - pattern-not: return $F(...);
+      - pattern-not: return <... $F(...) ...>;
+      - pattern-not: $LHS = <... $F(...) ...>;
+      - pattern-not: $TYPE $LHS = <... $F(...) ...>;

@@ -1,0 +1,67 @@
+rules:
+  - id: c-cpp-unbounded-string-copy
+    languages: [c, cpp]
+    paths:
+      include:
+        - "*.c"
+        - "*.h"
+        - "*.cpp"
+        - "*.cc"
+        - "*.cxx"
+        - "*.c++"
+        - "*.hpp"
+        - "*.hh"
+        - "*.hxx"
+        - "*.inc"
+    severity: ERROR
+    message: >-
+      Use of an unbounded string/format function (`strcpy`, `strcat`, `sprintf`, `gets`,
+      `stpcpy`). These write until a NUL terminator (or the formatted output) with no regard
+      for the destination size, so attacker-controlled input longer than the destination causes
+      a buffer overflow. Remediation: use the size-bounded equivalents: `snprintf` instead of
+      `sprintf`, `strlcpy`/`strncpy` (NUL-terminate) instead of `strcpy`, `strlcat` instead of
+      `strcat`, and `fgets` instead of `gets`, and always pass the real destination size.
+    metadata:
+      vulnerability_class: Buffer Overflow
+      help: |
+        ## Summary
+        Use of an unbounded string/format function (`strcpy`, `strcat`, `sprintf`, `gets`, `stpcpy`). These write until a NUL terminator (or the formatted output) with no regard for the destination size, so attacker-controlled input longer than the destination causes a buffer overflow. Remediation: use the size-bounded equivalents: `snprintf` instead of `sprintf`, `strlcpy`/`strncpy` (NUL-terminate) instead of `strcpy`, `strlcat` instead of `strcat`, and `fgets` instead of `gets`, and always pass the real destination size.
+
+        ## Remediation
+        Replace with snprintf / strlcpy / strlcat / fgets and pass the destination size.
+      category: security
+      cwe:
+        - "CWE-120: Buffer Copy without Checking Size of Input ('Classic Buffer Overflow')"
+        - "CWE-676: Use of Potentially Dangerous Function"
+        - "CWE-787: Out-of-bounds Write"
+      owasp:
+        - "A06:2021 - Vulnerable and Outdated Components"
+      references:
+        - https://cwe.mitre.org/data/definitions/120.html
+      confidence: HIGH
+      likelihood: HIGH
+      impact: HIGH
+      subcategory: [vuln]
+      technology: [c, cpp]
+      remediation: >-
+        Replace with snprintf / strlcpy / strlcat / fgets and pass the destination size.
+    patterns:
+      - pattern-either:
+          - patterns:
+              - pattern: $F($DST, $SRC)
+              - metavariable-regex:
+                  metavariable: $F
+                  regex: (?i)^([a-z0-9]+_)?(strcpy|strcat|stpcpy)$
+          - patterns:
+              - pattern: $F($DST, $FMT, ...)
+              - metavariable-regex:
+                  metavariable: $F
+                  regex: (?i)^([a-z0-9]+_)?v?sprintf$
+              # only the unbounded `%s` / `%n` conversions overflow on input length;
+              # purely numeric formats (`%d`,`%x`,...) are width-bounded -> not flagged
+              - metavariable-regex:
+                  metavariable: $FMT
+                  regex: '.*%[-+ #0-9.*lh]*[sn]'
+          - pattern: gets($DST)
+      # a string-literal source fits a correctly-sized buffer in practice -> not flagged
+      - pattern-not: $F($DST, "...")

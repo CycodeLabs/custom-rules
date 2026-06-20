@@ -1,0 +1,160 @@
+rules:
+  - id: c-cpp-null-deref-from-accessor
+    languages: [c, cpp]
+    paths:
+      include:
+        - "*.c"
+        - "*.h"
+        - "*.cpp"
+        - "*.cc"
+        - "*.cxx"
+        - "*.c++"
+        - "*.hpp"
+        - "*.hh"
+        - "*.hxx"
+        - "*.inc"
+    severity: WARNING
+    message: >-
+      A pointer returned by a child/sibling/entry accessor (e.g. first-child / next-sibling /
+      nth-child of a parsed ASN.1 or tree node) is dereferenced without a NULL check. Such
+      accessors return NULL for an empty container, so a malformed but structurally-accepted input
+      (e.g. an empty ASN.1 SET/SEQUENCE) makes the parser dereference NULL and crash, a remotely
+      triggerable denial of service in a certificate/message parser. Remediation: NULL-check the
+      accessor result before dereferencing it, and treat a missing child as a parse error.
+    metadata:
+      vulnerability_class: NULL Pointer Dereference
+      help: |
+        ## Summary
+        A pointer returned by a child/sibling/entry accessor (e.g. first-child / next-sibling / nth-child of a parsed ASN.1 or tree node) is dereferenced without a NULL check. Such accessors return NULL for an empty container, so a malformed but structurally-accepted input (e.g. an empty ASN.1 SET/SEQUENCE) makes the parser dereference NULL and crash, a remotely triggerable denial of service in a certificate/message parser. Remediation: NULL-check the accessor result before dereferencing it, and treat a missing child as a parse error.
+
+        ## Remediation
+        NULL-check the accessor result before dereferencing; treat a missing child as a parse error.
+      category: security
+      cwe:
+        - "CWE-476: NULL Pointer Dereference"
+      references:
+        - https://cwe.mitre.org/data/definitions/476.html
+      confidence: LOW
+      likelihood: MEDIUM
+      impact: MEDIUM
+      subcategory: [vuln]
+      technology: [c, cpp]
+      remediation: >-
+        NULL-check the accessor result before dereferencing; treat a missing child as a parse error.
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $P = $ACC(...);
+              ...
+              $X = $P->$M;
+          - pattern: |
+              $P = $ACC(...);
+              ...
+              return $P->$M;
+          - pattern: |
+              $P = $ACC(...);
+              ...
+              $F(..., $P->$M, ...);
+      - metavariable-regex:
+          metavariable: $ACC
+          regex: (?i).*(first_?child|next_?sibling|nth_?child|firstchild|nextsibling)
+      # Suppress when the accessor result is null-checked before use. Use deep-expression
+      # matching (<... ... ...>) so the guard is still detected inside a COMPOUND condition
+      # such as `if (NULL == p || (p->id & MASK) != X)`, and cover the NULL/0/! spellings and
+      # both braced and single-statement (return/goto) guard bodies seen in real parsers.
+      - pattern-not: |
+          $P = $ACC(...);
+          ...
+          if (<... NULL == $P ...>) { ... }
+          ...
+      - pattern-not: |
+          $P = $ACC(...);
+          ...
+          if (<... $P == NULL ...>) { ... }
+          ...
+      - pattern-not: |
+          $P = $ACC(...);
+          ...
+          if (<... 0 == $P ...>) { ... }
+          ...
+      - pattern-not: |
+          $P = $ACC(...);
+          ...
+          if (<... $P == 0 ...>) { ... }
+          ...
+      - pattern-not: |
+          $P = $ACC(...);
+          ...
+          if (<... !$P ...>) { ... }
+          ...
+      - pattern-not: |
+          $P = $ACC(...);
+          ...
+          if (<... NULL == $P ...>) $S;
+          ...
+      - pattern-not: |
+          $P = $ACC(...);
+          ...
+          if (<... 0 == $P ...>) $S;
+          ...
+      - pattern-not: |
+          $P = $ACC(...);
+          ...
+          if (<... !$P ...>) $S;
+          ...
+      - pattern-not: |
+          $P = $ACC(...);
+          ...
+          if ($P) { ... }
+          ...
+      # Non-null branch: dereferencing inside `if (NULL != p) { ... }` is safe.
+      - pattern-not: |
+          $P = $ACC(...);
+          ...
+          if (<... NULL != $P ...>) { ... }
+          ...
+      - pattern-not: |
+          $P = $ACC(...);
+          ...
+          if (<... $P != NULL ...>) { ... }
+          ...
+      - pattern-not: |
+          $P = $ACC(...);
+          ...
+          if (<... $P != 0 ...>) { ... }
+          ...
+      - pattern-not: |
+          $P = $ACC(...);
+          ...
+          while (<... NULL != $P ...>) { ... }
+          ...
+      # The accessor result is passed to a validator/type-check whose status is tested
+      # (e.g. `if (OK > ASN1_VerifyType(node, INTEGER))`); the call rejects a NULL node, so
+      # any later dereference is guarded. Matches the result flowing into any checked call.
+      - pattern-not: |
+          $P = $ACC(...);
+          ...
+          if (<... $VFN(..., $P, ...) ...>) { ... }
+          ...
+      - pattern-not: |
+          $P = $ACC(...);
+          ...
+          if (<... $VFN(..., $P, ...) ...>) $S;
+          ...
+      - pattern-not: |
+          $P = $ACC(...);
+          ...
+          while (<... $VFN(..., $P, ...) ...>) { ... }
+          ...
+      - pattern-not: |
+          $P = $ACC(...);
+          ...
+          $R = $VFN(..., $P, ...);
+          if (<... $R ...>) { ... }
+          ...
+      - pattern-not: |
+          $P = $ACC(...);
+          ...
+          $R = $VFN(..., $P, ...);
+          if (<... $R ...>) $S;
+          ...

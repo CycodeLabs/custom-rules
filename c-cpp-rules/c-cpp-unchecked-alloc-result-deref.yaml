@@ -1,0 +1,128 @@
+rules:
+  - id: c-cpp-unchecked-alloc-result-deref
+    languages: [c, cpp]
+    paths:
+      include:
+        - "*.c"
+        - "*.h"
+        - "*.cpp"
+        - "*.cc"
+        - "*.cxx"
+        - "*.c++"
+        - "*.hpp"
+        - "*.hh"
+        - "*.hxx"
+        - "*.inc"
+    severity: WARNING
+    message: >-
+      The result of an allocation is written through / dereferenced without checking it for NULL.
+      Allocators return NULL on failure (and an attacker who controls the requested size, e.g. a
+      parsed Content-Length or count, can force failure). Writing through the NULL pointer is at
+      best a crash (DoS) and, with a controlled offset, a write to a low/attacker-influenced
+      address. Remediation: check the pointer for NULL immediately after allocating and fail
+      closed before any use. (Status-returning wrappers like `DIGI_MALLOC((void**)&p, n)` followed
+      by `if (OK != status)` are the safe idiom and are not flagged.)
+    metadata:
+      vulnerability_class: NULL Pointer Dereference
+      help: |
+        ## Summary
+        The result of an allocation is written through / dereferenced without checking it for NULL. Allocators return NULL on failure (and an attacker who controls the requested size, e.g. a parsed Content-Length or count, can force failure). Writing through the NULL pointer is at best a crash (DoS) and, with a controlled offset, a write to a low/attacker-influenced address. Remediation: check the pointer for NULL immediately after allocating and fail closed before any use. (Status-returning wrappers like `DIGI_MALLOC((void**)&p, n)` followed by `if (OK != status)` are the safe idiom and are not flagged.)
+
+        ## Remediation
+        Check the allocation result for NULL and fail closed before dereferencing it.
+      category: security
+      cwe:
+        - "CWE-476: NULL Pointer Dereference"
+        - "CWE-690: Unchecked Return Value to NULL Pointer Dereference"
+      references:
+        - https://cwe.mitre.org/data/definitions/690.html
+      confidence: LOW
+      likelihood: MEDIUM
+      impact: MEDIUM
+      subcategory: [vuln]
+      technology: [c, cpp]
+      remediation: >-
+        Check the allocation result for NULL and fail closed before dereferencing it.
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $P = $ALLOC(...);
+              ...
+              $CPY($P, $SRC, $N);
+          - pattern: |
+              $P = $ALLOC(...);
+              ...
+              $CPY($P + $OFF, $SRC, $N);
+          - pattern: |
+              $P = $ALLOC(...);
+              ...
+              *$P = $X;
+      - metavariable-regex:
+          metavariable: $ALLOC
+          regex: (?i)^([a-z0-9]+_)?((m|c|re)alloc)$
+      - metavariable-regex:
+          metavariable: $CPY
+          regex: (?i)^([a-z0-9]+_)?mem(cpy|move|set)$
+      # safe if a NULL check on $P intervenes. Deep-expression matching (<... ... ...>) keeps the
+      # guard detected inside compound conditions; cover NULL/0/!, the != non-null-branch idiom
+      # (`if (NULL != p) { ...use... }`), and both braced and single-statement guard bodies.
+      - pattern-not: |
+          $P = $ALLOC(...);
+          ...
+          if (<... NULL == $P ...>) { ... }
+          ...
+      - pattern-not: |
+          $P = $ALLOC(...);
+          ...
+          if (<... $P == NULL ...>) { ... }
+          ...
+      - pattern-not: |
+          $P = $ALLOC(...);
+          ...
+          if (<... 0 == $P ...>) { ... }
+          ...
+      - pattern-not: |
+          $P = $ALLOC(...);
+          ...
+          if (<... $P == 0 ...>) { ... }
+          ...
+      - pattern-not: |
+          $P = $ALLOC(...);
+          ...
+          if (<... !$P ...>) { ... }
+          ...
+      - pattern-not: |
+          $P = $ALLOC(...);
+          ...
+          if (<... NULL == $P ...>) $S;
+          ...
+      - pattern-not: |
+          $P = $ALLOC(...);
+          ...
+          if (<... 0 == $P ...>) $S;
+          ...
+      - pattern-not: |
+          $P = $ALLOC(...);
+          ...
+          if (<... !$P ...>) $S;
+          ...
+      - pattern-not: |
+          $P = $ALLOC(...);
+          ...
+          if (<... NULL != $P ...>) { ... }
+          ...
+      - pattern-not: |
+          $P = $ALLOC(...);
+          ...
+          if (<... $P != NULL ...>) { ... }
+          ...
+      - pattern-not: |
+          $P = $ALLOC(...);
+          ...
+          if (<... $P != 0 ...>) { ... }
+          ...
+      - pattern-not: |
+          $P = $ALLOC(...);
+          ...
+          if ($P) { ... }
+          ...
