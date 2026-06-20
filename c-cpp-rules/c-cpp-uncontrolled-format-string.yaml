@@ -21,6 +21,7 @@ rules:
       string and put untrusted data in the variadic arguments, e.g. `printf("%s", user)` rather
       than `printf(user)`.
     metadata:
+      cycode_rev: 2  # content-hash bump so Cycode re-imports this custom policy (dedup workaround)
       vulnerability_class: Use of Externally-Controlled Format String
       help: |
         ## Summary

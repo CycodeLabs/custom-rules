@@ -25,6 +25,7 @@ rules:
       `calloc(count, size)` which performs the overflow check, and validate `a >= b` before any
       subtraction.
     metadata:
+      cycode_rev: 2  # content-hash bump so Cycode re-imports this custom policy (dedup workaround)
       vulnerability_class: Integer Overflow or Underflow
       help: |
         ## Summary
