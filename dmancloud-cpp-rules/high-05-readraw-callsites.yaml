@@ -1,0 +1,32 @@
+# Finding 5  readRaw<T>() call sites (audit rule - fires on all)
+# Cycode severity: HIGH  |  semgrep severity: WARNING  |  language: cpp
+# Run: semgrep scan --config high-05-readraw-callsites.yaml path/to/src
+
+rules:
+  - id: cycode-05-unbounded-readraw
+    languages: [cpp]
+    severity: WARNING
+    message: >-
+      readRaw<T>() memcpys sizeof(T) bytes from the buffer without checking
+      position_ + sizeof(T) <= length_, so truncated or malformed packets produce
+      out-of-bounds reads and garbage prices/quantities/sequence numbers. Use the
+      bounds-checking read<T>() overload instead, or add the bounds check inside
+      readRaw().
+    patterns:
+      - pattern-either:
+          - pattern: $BUF.readRaw<$T>()
+          - pattern: $BUF->readRaw<$T>()
+          - pattern: readRaw<$T>()
+    metadata:
+      cycode_rev: 1  # mirrored from dmancloud/SemgrepRules; marker bumps the content hash for Cycode import
+      cycode-finding: 5
+      category: security
+      confidence: HIGH
+      likelihood: HIGH
+      impact: MEDIUM
+      cwe:
+        - "CWE-125: Out-of-bounds Read"
+      subcategory: [audit]
+      technology: [cpp]
+      references:
+        - https://cwe.mitre.org/data/definitions/125.html

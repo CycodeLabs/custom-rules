@@ -1,0 +1,48 @@
+# Finding 10 SBE payload parsed without frameLen validation
+# Cycode severity: HIGH  |  semgrep severity: WARNING  |  language: cpp
+# Run: semgrep scan --config high-10-framelen-not-validated.yaml path/to/src
+
+rules:
+  - id: cycode-10-sbe-payload-parsed-without-framelen-validation
+    languages: [cpp]
+    severity: WARNING
+    message: >-
+      The frame length parameter is received but never used to validate the buffer before
+      the header is decoded and payload offsets are memcpy'd. Truncated packets produce
+      out-of-bounds reads and garbage financial fields. Add
+      `if (!frame || frameLen < sizeof(SbeHeader) + kMinPayloadSize) return {};` at the
+      top of the function.
+    patterns:
+      - pattern: |
+          $RET $FN(const uint8_t *$FRAME, $LT $FRAMELEN) {
+            ...
+            $PAYLOAD = $FRAME + sizeof($HDRT);
+            ...
+          }
+      - pattern-not: |
+          $RET $FN(const uint8_t *$FRAME, $LT $FRAMELEN) {
+            ...
+            if (<... $FRAMELEN ...>) { ... }
+            ...
+          }
+      - pattern-not: |
+          $RET $FN(const uint8_t *$FRAME, $LT $FRAMELEN) {
+            ...
+            if (<... $FRAMELEN ...>) $S;
+            ...
+          }
+      - metavariable-regex:
+          metavariable: $FRAMELEN
+          regex: (?i).*(len|size|bytes|count).*
+    metadata:
+      cycode_rev: 1  # mirrored from dmancloud/SemgrepRules; marker bumps the content hash for Cycode import
+      cycode-finding: 10
+      category: security
+      confidence: HIGH
+      likelihood: HIGH
+      impact: MEDIUM
+      cwe:
+        - "CWE-125: Out-of-bounds Read"
+        - "CWE-1284: Improper Validation of Specified Quantity in Input"
+      subcategory: [vuln]
+      technology: [cpp, sbe]

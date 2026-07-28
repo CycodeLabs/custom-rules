@@ -1,0 +1,40 @@
+# Finding 3  SSL_CTX_set_verify with permissive callback
+# Cycode severity: CRITICAL  |  semgrep severity: ERROR  |  language: cpp
+# Run: semgrep scan --config critical-03-tls-permissive-verify-cb.yaml path/to/src
+
+rules:
+  - id: cycode-03-tls-verify-callback-always-accepts
+    languages: [cpp]
+    severity: ERROR
+    message: >-
+      SSL_CTX_set_verify() is installed with a verification callback that ignores
+      preverify_ok and unconditionally returns 1, which negates the entire trust store
+      and permits any certificate (full MITM). Remove the callback and rely on OpenSSL's
+      default verification: SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER |
+      SSL_VERIFY_FAIL_IF_NO_PEER_CERT, nullptr).
+    patterns:
+      - pattern: SSL_CTX_set_verify($CTX, $MODE, $CB)
+      - metavariable-pattern:
+          metavariable: $CB
+          patterns:
+            - pattern-not: "nullptr"
+            - pattern-not: "NULL"
+            - pattern-not: "0"
+      - metavariable-regex:
+          metavariable: $CB
+          regex: (?i).*(accept|allow|always|ignore|permit|trust|no.?verify|dummy|noop).*
+    metadata:
+      cycode_rev: 1  # mirrored from dmancloud/SemgrepRules; marker bumps the content hash for Cycode import
+      cycode-finding: 3
+      category: security
+      confidence: HIGH
+      likelihood: HIGH
+      impact: HIGH
+      cwe:
+        - "CWE-295: Improper Certificate Validation"
+      owasp:
+        - "A07:2021 - Identification and Authentication Failures"
+      subcategory: [vuln]
+      technology: [cpp, openssl, tls]
+      references:
+        - https://cwe.mitre.org/data/definitions/295.html

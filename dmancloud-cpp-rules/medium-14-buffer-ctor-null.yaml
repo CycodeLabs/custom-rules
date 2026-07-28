@@ -1,0 +1,71 @@
+# Finding 14 ByteBuffer constructor accepts null pointer
+# Cycode severity: MEDIUM  |  semgrep severity: INFO  |  language: cpp
+# Run: semgrep scan --config medium-14-buffer-ctor-null.yaml path/to/src
+
+rules:
+  - id: cycode-14-bytebuffer-ctor-missing-null-validation
+    languages: [cpp]
+    severity: INFO
+    message: >-
+      The buffer constructor stores the data pointer without validating it, so a null
+      input segfaults on the first read() / readRaw(). Add
+      `if (data == nullptr) { length_ = 0; }` (or an assert) in the constructor body.
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $C(const uint8_t *$DATA, $LT $LEN) { ... }
+          - pattern: |
+              $C(const uint8_t *$DATA, $LT $LEN) : $A($DATA) { ... }
+          - pattern: |
+              $C(const uint8_t *$DATA, $LT $LEN) : $A($DATA), $B($LEN) { ... }
+          - pattern: |
+              $C(const uint8_t *$DATA, $LT $LEN) : $A($DATA), $B($LEN), $D($Z) { ... }
+          - pattern: |
+              $C(const uint8_t *$DATA, $LT $LEN) : $A($DATA), $B($LEN), $D($Z), $E($Y) { ... }
+      - pattern-not: |
+          $C(const uint8_t *$DATA, $LT $LEN) {
+            ...
+            if (<... $DATA ...>) { ... }
+            ...
+          }
+      - pattern-not: |
+          $C(const uint8_t *$DATA, $LT $LEN) : $A($DATA) {
+            ...
+            if (<... $DATA ...>) { ... }
+            ...
+          }
+      - pattern-not: |
+          $C(const uint8_t *$DATA, $LT $LEN) : $A($DATA), $B($LEN) {
+            ...
+            if (<... $DATA ...>) { ... }
+            ...
+          }
+      - pattern-not: |
+          $C(const uint8_t *$DATA, $LT $LEN) : $A($DATA), $B($LEN), $D($Z) {
+            ...
+            if (<... $DATA ...>) { ... }
+            ...
+          }
+      - pattern-not: |
+          $C(const uint8_t *$DATA, $LT $LEN) : $A($DATA), $B($LEN), $D($Z), $E($Y) {
+            ...
+            if (<... $DATA ...>) { ... }
+            ...
+          }
+      - pattern-not: |
+          $C(const uint8_t *$DATA, $LT $LEN) : $A($DATA), $B($LEN), $D($Z) {
+            ...
+            assert(...);
+            ...
+          }
+    metadata:
+      cycode_rev: 1  # mirrored from dmancloud/SemgrepRules; marker bumps the content hash for Cycode import
+      cycode-finding: 14
+      category: security
+      confidence: MEDIUM
+      likelihood: MEDIUM
+      impact: MEDIUM
+      cwe:
+        - "CWE-476: NULL Pointer Dereference"
+      subcategory: [vuln]
+      technology: [cpp]

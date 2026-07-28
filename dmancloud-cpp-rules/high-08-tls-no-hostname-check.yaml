@@ -1,0 +1,49 @@
+# Finding 8  Missing TLS hostname verification
+# Cycode severity: HIGH  |  semgrep severity: WARNING  |  language: cpp
+# Run: semgrep scan --config high-08-tls-no-hostname-check.yaml path/to/src
+
+rules:
+  - id: cycode-08-tls-missing-hostname-verification
+    languages: [cpp]
+    severity: WARNING
+    message: >-
+      An SSL object is created and connected without SSL_set1_host() or
+      SSL_set_tlsext_host_name(), so the certificate chain is validated but the hostname
+      in CN/SAN is never checked. A valid certificate for any other domain issued by a
+      trusted CA defeats the connection. Call SSL_set1_host(ssl, host) and
+      SSL_set_tlsext_host_name(ssl, host) right after SSL_new().
+    patterns:
+      - pattern: |
+          $SSL = SSL_new($CTX);
+          ...
+          SSL_connect($SSL);
+      - pattern-not: |
+          $SSL = SSL_new($CTX);
+          ...
+          SSL_set1_host($SSL, ...);
+          ...
+      - pattern-not: |
+          $SSL = SSL_new($CTX);
+          ...
+          SSL_set_tlsext_host_name($SSL, ...);
+          ...
+      - pattern-not: |
+          $SSL = SSL_new($CTX);
+          ...
+          X509_VERIFY_PARAM_set1_host(...);
+          ...
+    metadata:
+      cycode_rev: 1  # mirrored from dmancloud/SemgrepRules; marker bumps the content hash for Cycode import
+      cycode-finding: 8
+      category: security
+      confidence: HIGH
+      likelihood: HIGH
+      impact: HIGH
+      cwe:
+        - "CWE-297: Improper Validation of Certificate with Host Mismatch"
+      owasp:
+        - "A07:2021 - Identification and Authentication Failures"
+      subcategory: [vuln]
+      technology: [cpp, openssl, tls]
+      references:
+        - https://cwe.mitre.org/data/definitions/297.html

@@ -1,0 +1,40 @@
+# Finding 7  Non-atomic ring buffer read/write positions
+# Cycode severity: HIGH  |  semgrep severity: WARNING  |  language: cpp
+# Run: semgrep scan --config high-07-ring-non-atomic-pos.yaml path/to/src
+
+rules:
+  - id: cycode-07-ring-buffer-non-atomic-positions
+    languages: [cpp]
+    severity: WARNING
+    message: >-
+      Ring buffer read/write positions are plain std::size_t while push() and pop() are
+      called from different threads — a data race and undefined behaviour under the C++
+      memory model (torn reads, stale cache lines, partially written slots). Declare them
+      std::atomic<std::size_t> and use acquire/release ordering for SPSC, or guard the
+      ring with a mutex for MPMC.
+    patterns:
+      - pattern-either:
+          - pattern: std::size_t $POS = 0;
+          - pattern: size_t $POS = 0;
+          - pattern: std::size_t $POS;
+          - pattern: size_t $POS;
+      - metavariable-regex:
+          metavariable: $POS
+          regex: (?i)^(write|read|head|tail|produce|consume|prod|cons)(pos|idx|index|cursor|seq)_?$
+      - pattern-not-inside: |
+          $RET $FN(...) {
+            ...
+          }
+    metadata:
+      cycode_rev: 1  # mirrored from dmancloud/SemgrepRules; marker bumps the content hash for Cycode import
+      cycode-finding: 7
+      category: security
+      confidence: MEDIUM
+      likelihood: HIGH
+      impact: HIGH
+      cwe:
+        - "CWE-362: Concurrent Execution using Shared Resource with Improper Synchronization (Race Condition)"
+      subcategory: [vuln]
+      technology: [cpp, concurrency]
+      references:
+        - https://cwe.mitre.org/data/definitions/362.html

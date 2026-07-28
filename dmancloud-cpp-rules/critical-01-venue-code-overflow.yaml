@@ -1,0 +1,64 @@
+# Finding 1  Unchecked wire length -> OOB write in pullVenueCode
+# Cycode severity: CRITICAL  |  semgrep severity: ERROR  |  language: cpp
+# Run: semgrep scan --config critical-01-venue-code-overflow.yaml path/to/src
+
+rules:
+  - id: cycode-01-unchecked-wire-length-before-readbytesraw
+    languages: [cpp]
+    severity: ERROR
+    message: >-
+      Attacker-controlled wire length read via readRaw<> is passed to readBytesRaw()
+      without being validated against the destination capacity, and is then used as an
+      index for the NUL terminator. Any length >= the slot capacity is an out-of-bounds
+      write. Add `if ($LEN >= slotCapacity) return 0;` (or clamp with std::min) before
+      the copy.
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $TY $LEN = $BUF.readRaw<$U>();
+              ...
+              $BUF.readBytesRaw($DST, $LEN);
+          - pattern: |
+              $LEN = $BUF.readRaw<$U>();
+              ...
+              $BUF.readBytesRaw($DST, $LEN);
+      - pattern-not: |
+          $TY $LEN = $BUF.readRaw<$U>();
+          ...
+          if (<... $LEN ...>) { ... }
+          ...
+          $BUF.readBytesRaw($DST, $LEN);
+      - pattern-not: |
+          $LEN = $BUF.readRaw<$U>();
+          ...
+          if (<... $LEN ...>) { ... }
+          ...
+          $BUF.readBytesRaw($DST, $LEN);
+      - pattern-not: |
+          $TY $LEN = $BUF.readRaw<$U>();
+          ...
+          if (<... $LEN ...>) $S;
+          ...
+          $BUF.readBytesRaw($DST, $LEN);
+      - pattern-not: |
+          $LEN = $BUF.readRaw<$U>();
+          ...
+          if (<... $LEN ...>) $S;
+          ...
+          $BUF.readBytesRaw($DST, $LEN);
+    metadata:
+      cycode_rev: 1  # mirrored from dmancloud/SemgrepRules; marker bumps the content hash for Cycode import
+      cycode-finding: 1
+      category: security
+      confidence: HIGH
+      likelihood: HIGH
+      impact: HIGH
+      cwe:
+        - "CWE-787: Out-of-bounds Write"
+        - "CWE-120: Buffer Copy without Checking Size of Input"
+      owasp:
+        - "A03:2021 - Injection"
+      subcategory: [vuln]
+      technology: [cpp, market-data]
+      references:
+        - https://cwe.mitre.org/data/definitions/787.html

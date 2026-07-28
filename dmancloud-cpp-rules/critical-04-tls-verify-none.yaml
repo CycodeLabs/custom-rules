@@ -1,0 +1,30 @@
+# Finding 4  SSL_VERIFY_NONE - peer verification disabled
+# Cycode severity: CRITICAL  |  semgrep severity: ERROR  |  language: cpp
+# Run: semgrep scan --config critical-04-tls-verify-none.yaml path/to/src
+
+rules:
+  - id: cycode-04-tls-peer-verification-disabled
+    languages: [cpp]
+    severity: ERROR
+    message: >-
+      SSL_VERIFY_NONE disables peer certificate verification entirely; setting a minimum
+      TLS version does not compensate. Any attacker on the path can present an arbitrary
+      certificate. Use SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT and load a CA
+      bundle.
+    patterns:
+      - pattern-either:
+          - pattern: SSL_CTX_set_verify($CTX, SSL_VERIFY_NONE, ...)
+          - pattern: SSL_set_verify($SSL, SSL_VERIFY_NONE, ...)
+    metadata:
+      cycode_rev: 1  # mirrored from dmancloud/SemgrepRules; marker bumps the content hash for Cycode import
+      cycode-finding: 4
+      category: security
+      confidence: HIGH
+      likelihood: HIGH
+      impact: HIGH
+      cwe:
+        - "CWE-295: Improper Certificate Validation"
+      owasp:
+        - "A07:2021 - Identification and Authentication Failures"
+      subcategory: [vuln]
+      technology: [cpp, openssl, tls]

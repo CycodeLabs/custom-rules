@@ -1,0 +1,43 @@
+# Finding 9  SSL_CTX factory with no certificate verification
+# Cycode severity: HIGH  |  semgrep severity: WARNING  |  language: cpp
+# Run: semgrep scan --config high-09-ssl-ctx-no-verify.yaml path/to/src
+
+rules:
+  - id: cycode-09-ssl-context-factory-without-verification
+    languages: [cpp]
+    severity: WARNING
+    message: >-
+      This factory builds an SSL_CTX without ever calling SSL_CTX_set_verify() or loading
+      a trust store, so every caller gets an unverified TLS connection. Delegate to the
+      CA-loading factory, or add SSL_CTX_set_verify(ctx, SSL_VERIFY_PEER |
+      SSL_VERIFY_FAIL_IF_NO_PEER_CERT, nullptr) plus SSL_CTX_load_verify_locations().
+    patterns:
+      - pattern: |
+          $RET $FN(...) {
+            ...
+            SSL_CTX_new(...);
+            ...
+          }
+      - pattern-not: |
+          $RET $FN(...) {
+            ...
+            SSL_CTX_set_verify(...);
+            ...
+          }
+      - pattern-not: |
+          $RET $FN(...) {
+            ...
+            SSL_CTX_set_default_verify_paths(...);
+            ...
+          }
+    metadata:
+      cycode_rev: 1  # mirrored from dmancloud/SemgrepRules; marker bumps the content hash for Cycode import
+      cycode-finding: 9
+      category: security
+      confidence: MEDIUM
+      likelihood: HIGH
+      impact: HIGH
+      cwe:
+        - "CWE-295: Improper Certificate Validation"
+      subcategory: [vuln]
+      technology: [cpp, openssl, tls]

@@ -1,0 +1,44 @@
+# Finding 15 SSL_CTX without minimum TLS protocol version
+# Cycode severity: MEDIUM  |  semgrep severity: INFO  |  language: cpp
+# Run: semgrep scan --config medium-15-tls-min-version.yaml path/to/src
+
+rules:
+  - id: cycode-15-tls-context-missing-min-proto-version
+    languages: [cpp]
+    severity: INFO
+    message: >-
+      This SSL_CTX is created without SSL_CTX_set_min_proto_version(), so TLS 1.0/1.1 may
+      be negotiated depending on the OpenSSL build defaults (BEAST / POODLE-TLS). Add
+      SSL_CTX_set_min_proto_version(ctx, TLS1_2_VERSION) — TLS1_3_VERSION where the peer
+      supports it.
+    patterns:
+      - pattern: |
+          $RET $FN(...) {
+            ...
+            SSL_CTX_new(...);
+            ...
+          }
+      - pattern-not: |
+          $RET $FN(...) {
+            ...
+            SSL_CTX_set_min_proto_version(...);
+            ...
+          }
+      - pattern-not: |
+          $RET $FN(...) {
+            ...
+            SSL_CTX_set_options(...);
+            ...
+          }
+    metadata:
+      cycode_rev: 1  # mirrored from dmancloud/SemgrepRules; marker bumps the content hash for Cycode import
+      cycode-finding: 15
+      category: security
+      confidence: HIGH
+      likelihood: MEDIUM
+      impact: MEDIUM
+      cwe:
+        - "CWE-327: Use of a Broken or Risky Cryptographic Algorithm"
+        - "CWE-757: Selection of Less-Secure Algorithm During Negotiation (Downgrade)"
+      subcategory: [vuln]
+      technology: [cpp, openssl, tls]

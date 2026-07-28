@@ -1,0 +1,50 @@
+# Finding 11 Sequential memcpy without cumulative bounds check
+# Cycode severity: HIGH  |  semgrep severity: WARNING  |  language: cpp
+# Run: semgrep scan --config high-11-cursor-memcpy-oob.yaml path/to/src
+
+rules:
+  - id: cycode-11-cursor-memcpy-without-cumulative-bounds-check
+    languages: [cpp]
+    severity: WARNING
+    message: >-
+      A cursor advances through a network frame with successive memcpy() reads and no
+      `cursor + sizeof(T) <= frameLen` guard before each one, so short frames read past
+      the end of the buffer for every field after the first. Use the bounds-checking
+      ByteBuffer::read<T>(), or add an explicit guard before each copy.
+    patterns:
+      - pattern-either:
+          - pattern: |
+              memcpy($DST1, $FRAME + $CUR, sizeof($T1));
+              ...
+              $CUR += $N;
+              ...
+              memcpy($DST2, $FRAME + $CUR, sizeof($T2));
+          - pattern: |
+              std::memcpy($DST1, $FRAME + $CUR, sizeof($T1));
+              ...
+              $CUR += $N;
+              ...
+              std::memcpy($DST2, $FRAME + $CUR, sizeof($T2));
+      - pattern-not-inside: |
+          {
+            ...
+            if (<... $CUR + sizeof($TT) ...>) { ... }
+            ...
+          }
+      - pattern-not-inside: |
+          {
+            ...
+            if (<... $CUR + sizeof($TT) ...>) $S;
+            ...
+          }
+    metadata:
+      cycode_rev: 1  # mirrored from dmancloud/SemgrepRules; marker bumps the content hash for Cycode import
+      cycode-finding: 11
+      category: security
+      confidence: HIGH
+      likelihood: HIGH
+      impact: MEDIUM
+      cwe:
+        - "CWE-125: Out-of-bounds Read"
+      subcategory: [vuln]
+      technology: [cpp]

@@ -1,0 +1,55 @@
+# Finding 5  readRaw<T>() definition missing bounds check
+# Cycode severity: HIGH  |  semgrep severity: WARNING  |  language: cpp
+# Run: semgrep scan --config high-05b-readraw-no-bounds-check.yaml path/to/src
+
+rules:
+  - id: cycode-05b-readraw-definition-missing-bounds-check
+    languages: [cpp]
+    severity: WARNING
+    message: >-
+      readRaw<T>() copies sizeof(T) bytes and advances position_ with no bounds check
+      against length_. Add `if (position_ + sizeof(T) > length_) throw/return;` here so
+      every existing call site becomes safe.
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $RET readRaw(...) {
+                ...
+                memcpy(&$V, $DATA + $POS, sizeof($T));
+                ...
+              }
+          - pattern: |
+              $RET readRaw(...) {
+                ...
+                std::memcpy(&$V, $DATA + $POS, sizeof($T));
+                ...
+              }
+      - pattern-not: |
+          $RET readRaw(...) {
+            ...
+            if ($COND) { ... }
+            ...
+          }
+      - pattern-not: |
+          $RET readRaw(...) {
+            ...
+            if ($COND) $S;
+            ...
+          }
+      - pattern-not: |
+          $RET readRaw(...) {
+            ...
+            assert(...);
+            ...
+          }
+    metadata:
+      cycode_rev: 1  # mirrored from dmancloud/SemgrepRules; marker bumps the content hash for Cycode import
+      cycode-finding: 5
+      category: security
+      confidence: MEDIUM
+      likelihood: HIGH
+      impact: MEDIUM
+      cwe:
+        - "CWE-125: Out-of-bounds Read"
+      subcategory: [vuln]
+      technology: [cpp]

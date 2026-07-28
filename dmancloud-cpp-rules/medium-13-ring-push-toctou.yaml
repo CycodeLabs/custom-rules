@@ -1,0 +1,49 @@
+# Finding 13 TOCTOU gap between atomic load and store in push()
+# Cycode severity: MEDIUM  |  semgrep severity: INFO  |  language: cpp
+# Run: semgrep scan --config medium-13-ring-push-toctou.yaml path/to/src
+
+rules:
+  - id: cycode-13-ring-push-load-store-toctou
+    languages: [cpp]
+    severity: INFO
+    message: >-
+      push() loads the write position, writes the slot, then stores position + 1. Two
+      producers can load the same position and write to the same slot, losing an update.
+      Use a compare_exchange loop to claim the slot, or declare the ring SPSC-only and
+      enforce it (static_assert / documented single-producer contract).
+    patterns:
+      - pattern: |
+          $POS = $WP.load(...);
+          ...
+          $BUF[$POS % $N] = $ITEM;
+          ...
+          $WP.store($POS + 1, ...);
+      - pattern-not-inside: |
+          {
+            ...
+            $WP.compare_exchange_weak(...);
+            ...
+          }
+      - pattern-not-inside: |
+          {
+            ...
+            $WP.compare_exchange_strong(...);
+            ...
+          }
+      - pattern-not-inside: |
+          {
+            ...
+            $WP.fetch_add(...);
+            ...
+          }
+    metadata:
+      cycode_rev: 1  # mirrored from dmancloud/SemgrepRules; marker bumps the content hash for Cycode import
+      cycode-finding: 13
+      category: security
+      confidence: MEDIUM
+      likelihood: MEDIUM
+      impact: MEDIUM
+      cwe:
+        - "CWE-367: Time-of-check Time-of-use (TOCTOU) Race Condition"
+      subcategory: [vuln]
+      technology: [cpp, concurrency]

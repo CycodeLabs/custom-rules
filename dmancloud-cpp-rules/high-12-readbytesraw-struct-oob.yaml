@@ -1,0 +1,46 @@
+# Finding 12 readBytesRaw on struct without bounds check
+# Cycode severity: HIGH  |  semgrep severity: WARNING  |  language: cpp
+# Run: semgrep scan --config high-12-readbytesraw-struct-oob.yaml path/to/src
+
+rules:
+  - id: cycode-12-readbytesraw-struct-without-remaining-check
+    languages: [cpp]
+    severity: WARNING
+    message: >-
+      readBytesRaw() performs no bounds check on the source buffer, so reading a whole
+      struct out of a buffer shorter than sizeof(T) reads past the end and yields garbage
+      financial fields. Use buf.read<T>(), or check
+      `buf.remaining() >= sizeof(T)` first.
+    patterns:
+      - pattern-either:
+          - pattern: $BUF.readBytesRaw(&$DST, sizeof($T));
+          - pattern: $BUF->readBytesRaw(&$DST, sizeof($T));
+      - pattern-not-inside: |
+          {
+            ...
+            if (<... $BUF.remaining() ...>) { ... }
+            ...
+          }
+      - pattern-not-inside: |
+          {
+            ...
+            if (<... $BUF.remaining() ...>) $S;
+            ...
+          }
+      - pattern-not-inside: |
+          {
+            ...
+            if (<... $BUF->remaining() ...>) { ... }
+            ...
+          }
+    metadata:
+      cycode_rev: 1  # mirrored from dmancloud/SemgrepRules; marker bumps the content hash for Cycode import
+      cycode-finding: 12
+      category: security
+      confidence: HIGH
+      likelihood: HIGH
+      impact: MEDIUM
+      cwe:
+        - "CWE-125: Out-of-bounds Read"
+      subcategory: [vuln]
+      technology: [cpp]

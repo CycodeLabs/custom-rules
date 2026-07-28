@@ -1,0 +1,54 @@
+# Finding 2  Unclamped codeWidth memcpy into 8-byte instrCode
+# Cycode severity: CRITICAL  |  semgrep severity: ERROR  |  language: cpp
+# Run: semgrep scan --config critical-02-instr-code-overflow.yaml path/to/src
+
+rules:
+  - id: cycode-02-unclamped-length-memcpy-into-fixed-buffer
+    languages: [cpp]
+    severity: ERROR
+    message: >-
+      memcpy() into a fixed-size struct field uses a wire-supplied length that is never
+      clamped, and the same length is then used to write a NUL terminator. Any length
+      >= the field width corrupts adjacent struct fields. Clamp first:
+      `const size_t safeLen = std::min<size_t>($LEN, sizeof($DST) - 1);`
+    patterns:
+      - pattern-either:
+          - pattern: |
+              memcpy($OBJ.$FIELD, $SRC, $LEN);
+              ...
+              $OBJ.$FIELD[$LEN] = '\0';
+          - pattern: |
+              std::memcpy($OBJ.$FIELD, $SRC, $LEN);
+              ...
+              $OBJ.$FIELD[$LEN] = '\0';
+          - pattern: |
+              memcpy($OBJ->$FIELD, $SRC, $LEN);
+              ...
+              $OBJ->$FIELD[$LEN] = '\0';
+          - pattern: |
+              std::memcpy($OBJ->$FIELD, $SRC, $LEN);
+              ...
+              $OBJ->$FIELD[$LEN] = '\0';
+      - pattern-not-inside: |
+          $LEN = std::min(...);
+          ...
+      - pattern-not-inside: |
+          $TY $LEN = std::min(...);
+          ...
+      - pattern-not-inside: |
+          $TY $LEN = std::min<$W>(...);
+          ...
+    metadata:
+      cycode_rev: 1  # mirrored from dmancloud/SemgrepRules; marker bumps the content hash for Cycode import
+      cycode-finding: 2
+      category: security
+      confidence: HIGH
+      likelihood: HIGH
+      impact: HIGH
+      cwe:
+        - "CWE-787: Out-of-bounds Write"
+        - "CWE-121: Stack-based Buffer Overflow"
+      subcategory: [vuln]
+      technology: [cpp]
+      references:
+        - https://cwe.mitre.org/data/definitions/787.html

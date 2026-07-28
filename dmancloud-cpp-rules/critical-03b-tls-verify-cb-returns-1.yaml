@@ -1,0 +1,55 @@
+# Finding 3  Verify callback hardcoded to return 1
+# Cycode severity: CRITICAL  |  semgrep severity: ERROR  |  language: cpp
+# Run: semgrep scan --config critical-03b-tls-verify-cb-returns-1.yaml path/to/src
+
+rules:
+  - id: cycode-03b-tls-verify-callback-hardcoded-success
+    languages: [cpp]
+    severity: ERROR
+    message: >-
+      This OpenSSL verify callback returns success unconditionally and never inspects
+      preverify_ok, so every certificate — including self-signed and expired ones — is
+      accepted. Delete the callback and pass nullptr to SSL_CTX_set_verify().
+    patterns:
+      - pattern-either:
+          - pattern: |
+              int $FN(int $OK, X509_STORE_CTX *$CTX) {
+                ...
+                return 1;
+              }
+          - pattern: |
+              static int $FN(int $OK, X509_STORE_CTX *$CTX) {
+                ...
+                return 1;
+              }
+      - pattern-not: |
+          int $FN(int $OK, X509_STORE_CTX *$CTX) {
+            ...
+            return $OK;
+          }
+      - pattern-not: |
+          static int $FN(int $OK, X509_STORE_CTX *$CTX) {
+            ...
+            return $OK;
+          }
+      - pattern-not: |
+          int $FN(int $OK, X509_STORE_CTX *$CTX) {
+            ...
+            return 0;
+          }
+      - pattern-not: |
+          static int $FN(int $OK, X509_STORE_CTX *$CTX) {
+            ...
+            return 0;
+          }
+    metadata:
+      cycode_rev: 1  # mirrored from dmancloud/SemgrepRules; marker bumps the content hash for Cycode import
+      cycode-finding: 3
+      category: security
+      confidence: HIGH
+      likelihood: HIGH
+      impact: HIGH
+      cwe:
+        - "CWE-295: Improper Certificate Validation"
+      subcategory: [vuln]
+      technology: [cpp, openssl, tls]

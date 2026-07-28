@@ -1,0 +1,57 @@
+# Finding 6  decodeSbeHeader missing null / length check
+# Cycode severity: HIGH  |  semgrep severity: WARNING  |  language: cpp
+# Run: semgrep scan --config high-06-sbe-header-null-deref.yaml path/to/src
+
+rules:
+  - id: cycode-06-decode-header-missing-null-and-length-check
+    languages: [cpp]
+    severity: WARNING
+    message: >-
+      Header decode memcpys sizeof(SbeHeader) bytes from a network-supplied pointer with
+      no null check and no verification that the frame is at least sizeof(SbeHeader)
+      bytes. Add `if (!buffer || bufLen < sizeof(SbeHeader)) return false;` before the
+      copy.
+    patterns:
+      - pattern-either:
+          - pattern: |
+              $RET decodeSbeHeader(...) {
+                ...
+                memcpy(&$HDR, $BUF, sizeof($T));
+                ...
+              }
+          - pattern: |
+              $RET decodeSbeHeader(...) {
+                ...
+                std::memcpy(&$HDR, $BUF, sizeof($T));
+                ...
+              }
+      - pattern-not: |
+          $RET decodeSbeHeader(...) {
+            ...
+            if (<... !$BUF ...>) { ... }
+            ...
+          }
+      - pattern-not: |
+          $RET decodeSbeHeader(...) {
+            ...
+            if (<... !$BUF ...>) $S;
+            ...
+          }
+      - pattern-not: |
+          $RET decodeSbeHeader(...) {
+            ...
+            if (<... $BUF == nullptr ...>) { ... }
+            ...
+          }
+    metadata:
+      cycode_rev: 1  # mirrored from dmancloud/SemgrepRules; marker bumps the content hash for Cycode import
+      cycode-finding: 6
+      category: security
+      confidence: HIGH
+      likelihood: HIGH
+      impact: MEDIUM
+      cwe:
+        - "CWE-476: NULL Pointer Dereference"
+        - "CWE-125: Out-of-bounds Read"
+      subcategory: [vuln]
+      technology: [cpp, sbe]
